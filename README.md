@@ -211,6 +211,30 @@ chmod +x scripts/install-baota.sh
 
 - [BAOTA_INSTALL.md](/Users/canger/Documents/code/video/BAOTA_INSTALL.md)
 
+### Git 拉取更新
+
+如果服务器目录已经通过 Git 克隆本仓库，后续可直接使用更新脚本：
+
+```bash
+chmod +x scripts/deploy-pull.sh
+./scripts/deploy-pull.sh
+```
+
+如需指定分支：
+
+```bash
+./scripts/deploy-pull.sh main
+```
+
+脚本会自动执行：
+
+- `git fetch`
+- `git pull --ff-only`
+- `npm install`
+- `npm run build`
+
+完成后只需在宝塔 Node 项目中重启服务。
+
 ## Nginx 反向代理
 
 推荐将域名反向代理到：
