@@ -1,30 +1,133 @@
 # C-AI
 
-作者：苍洱
+高完成度的异步 AI 视频生成工作台。
 
+C-AI 面向需要稳定调用视频模型的独立创作者、工作室与内部团队，提供一套可直接部署的 Web 工作台：用户使用自己的中转密钥登录，提交视频生成任务，异步轮询状态，复用历史提示词与参考图，并直接使用上游返回的视频链接进行预览与下载。系统本身不保存视频文件，只负责任务编排、状态管理与操作体验。
+
+作者：苍洱  
 版权声明：未经授权，不得商用。
 
-一个用于调用异步视频生成中转接口的单体网站。用户输入自己的中转密钥后创建视频任务，服务端代理请求 `https://ai.772.ee`，并用 SQLite 保存最近 30 天任务记录。视频文件不保存，只使用上游返回的 `video_url` 做预览和下载。
+## 产品概览
 
-## 功能
+- 聚焦单一视频模型工作流，默认接入 `Seedance 2.0`
+- 固定 720p 输出，支持 5-15 秒时长与多种画幅比例
+- 支持本地图片上传、粘贴上传、拖拽上传与远程 URL 引用
+- 支持 Cloudflare R2 转存，提升长任务场景下的参考图稳定性
+- 任务异步提交、自动轮询、失败重试、取消、详情查看与历史复用
+- 最近 30 天任务与本地用量记录持久化保存
+- 不落盘保存视频，只使用上游返回的 `video_url`
 
-- 用户密钥作为身份来源，数据库只保存 `sha256(apiKey + SERVER_SECRET)`。
-- 固定调用 Seedance 2.0 视频模型，支持提示词、5-15 秒、画幅尺寸和参考素材 URL。
-- 支持上传参考图片；配置 R2 后先转存为公网 URL，未配置时自动直传给上游。
-- 创建任务后自动轮询状态。
-- 保存最近 30 天任务记录和创建/重试用量记录，支持刷新、取消、重试、任务详情。
-- 完成后直接用上游 `video_url` 播放。
-- 支持上传限制、友好错误文案和浏览器完成通知。
+## 核心能力
 
-## 开发
+### 1. 密钥即身份
+
+前端不创建传统账号体系，用户直接使用中转密钥登录。服务端不会明文存储密钥，只保存：
+
+```text
+sha256(apiKey + SERVER_SECRET)
+```
+
+这使得系统能够在不持有原始密钥的前提下完成任务历史、用量统计与本地用户隔离。
+
+### 2. 异步视频任务编排
+
+系统面向高时延视频生成链路设计。任务提交后，前端会进入持续轮询流程，并提供：
+
+- 当前任务生成态展示
+- 历史任务后台轮询
+- 浏览器通知
+- 失败后原位重试
+- 任务详情回看与二次复用
+
+对于 15 到 60 分钟的长任务，界面交互重点是“可离开、可回来、可继续提交下一条”，而不是阻塞式等待。
+
+### 3. 参考图稳定上传
+
+参考图有两种工作模式：
+
+- `R2 模式`
+  本地图片先转存为公网 URL，再提交给上游
+- `Direct 模式`
+  未配置对象存储时，图片直接随请求传给上游
+
+生产环境推荐启用 R2 或同类对象存储。对于视频长任务，避免依赖服务器本地临时文件是必要的稳定性策略。
+
+### 4. 本地任务与用量账本
+
+系统使用 SQLite 保存最近 30 天的数据：
+
+- 视频任务记录
+- 任务状态
+- 参考图 URL
+- 创建 / 重试用量事件
+
+当前用量为本地账本，用于站内展示与运营统计，不直接参与上游账户余额扣减。
+
+## 技术栈
+
+- Next.js 16
+- React 19
+- TypeScript
+- SQLite (`better-sqlite3`)
+- Cloudflare R2（可选）
+
+## 系统架构
+
+```text
+Browser
+  -> Next.js App
+    -> SQLite (task history / usage ledger)
+    -> Cloudflare R2 (optional, for reference images)
+    -> Upstream Video API (https://ai.772.ee)
+```
+
+职责边界：
+
+- C-AI 负责登录、任务提交、历史记录、状态轮询、参考图管理、用量记录
+- 上游服务负责视频任务执行、排队、渲染与视频 URL 回传
+- 视频文件本身不由 C-AI 持久化保存
+
+## 功能清单
+
+- 视频提示词输入与字数限制
+- 5-15 秒时长控制
+- 多画幅比例切换
+- 最多 9 张参考图
+- `@IMG_n` 参考图标签工作流
+- 本地上传、粘贴上传、拖拽上传
+- 远程参考图 URL 管理
+- R2 上传成功地址回填
+- 最近 30 天任务历史
+- 任务详情弹窗
+- 任务取消、重试、刷新
+- 浏览器完成通知
+- 健康检查接口 `/api/health`
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 初始化环境变量
 
 ```bash
 cp .env.example .env.local
-npm install
+```
+
+### 3. 启动开发环境
+
+```bash
 npm run dev
 ```
 
-打开 `http://localhost:3000`。
+浏览器访问：
+
+```text
+http://localhost:3000
+```
 
 ## 环境变量
 
@@ -35,7 +138,7 @@ SQLITE_PATH=./data/video.db
 MAX_UPLOAD_FILES=9
 MAX_UPLOAD_FILE_SIZE_MB=10
 
-# 可选：Cloudflare R2。留空时走直传上游。
+# Optional: Cloudflare R2
 R2_ACCOUNT_ID=
 R2_ENDPOINT=
 R2_BUCKET=
@@ -44,61 +147,79 @@ R2_SECRET_ACCESS_KEY=
 R2_PUBLIC_BASE_URL=
 ```
 
-生产环境必须替换 `SERVER_SECRET`。如果使用 Docker 或 VPS 部署，建议把 SQLite 放在持久化目录，例如 `/data/video.db`。
+说明：
 
-`R2_PUBLIC_BASE_URL` 必须是可公开访问的 bucket 域名或自定义域名，例如 `https://assets.example.com`。开启 R2 后，本地上传图片会转为公网 URL 再提交给上游，长任务期间比服务器本地临时文件更稳定。
+- `SERVER_SECRET`
+  生产环境必须替换，不能使用默认占位值
+- `SQLITE_PATH`
+  建议指向持久化目录，例如 `/data/video.db`
+- `MAX_UPLOAD_FILES`
+  当前推荐与上游约束保持一致，默认 `9`
+- `R2_PUBLIC_BASE_URL`
+  必须是公网可访问域名
 
-## 验证
+## 本地验证
 
 ```bash
 npm run typecheck
 npm run build
 ```
 
-部署后可用健康检查确认进程、SQLite 和 R2 配置状态：
+如果构建与类型检查均通过，再进入部署阶段。
 
-```bash
-curl https://your-domain.example.com/api/health
+## 生产部署
+
+### BaoTa / PM2 / Node 项目
+
+推荐使用宝塔 Node 项目或 PM2 管理服务，Node 版本要求：
+
+```text
+>= 20.9.0
 ```
 
-返回里的 `ok` 应为 `true`，`serverSecretConfigured` 生产环境必须为 `true`。`r2Configured` 为 `true` 表示参考图会先转存到 R2。
+启动命令：
 
-## 宝塔部署
+```bash
+npm run start
+```
 
-建议使用宝塔 Node 项目或 PM2 管理，运行前确认 Node.js 版本不低于 `20.9.0`。
+默认服务端口：
 
-如果希望减少手动配置，优先使用：
+```text
+3000
+```
+
+### 一键安装脚本
+
+仓库内已提供宝塔安装脚本：
 
 ```bash
 chmod +x scripts/install-baota.sh
 ./scripts/install-baota.sh
 ```
 
-1. 上传项目代码到服务器，例如 `/www/wwwroot/video-workbench`。
-2. 在项目目录执行 `npm install` 和 `npm run build`。
-3. 配置生产环境变量，至少设置 `SERVER_SECRET`、`SQLITE_PATH` 和 R2 相关变量。
-4. 启动命令使用 `npm run start`，端口默认 `3000`，也可设置环境变量 `PORT=3000`。
-5. 在宝塔网站反向代理到 `http://127.0.0.1:3000`。
+脚本会完成：
 
-推荐生产环境变量示例：
+- Node 版本检查
+- `.env.production` 生成
+- SQLite 数据目录创建
+- 可选 `npm install`
+- 可选 `npm run build`
+- 输出宝塔启动参数与健康检查地址
 
-```bash
-NODE_ENV=production
-PORT=3000
-VIDEO_API_BASE_URL=https://ai.772.ee
-SERVER_SECRET=replace-with-a-long-random-secret
-SQLITE_PATH=/www/wwwroot/video-workbench-data/video.db
-MAX_UPLOAD_FILES=9
-MAX_UPLOAD_FILE_SIZE_MB=10
+更详细的部署步骤见：
 
-R2_ENDPOINT=https://your-account.r2.cloudflarestorage.com
-R2_BUCKET=videos-ai
-R2_ACCESS_KEY_ID=replace-with-r2-access-key
-R2_SECRET_ACCESS_KEY=replace-with-r2-secret-key
-R2_PUBLIC_BASE_URL=https://oss.example.com
+- [BAOTA_INSTALL.md](/Users/canger/Documents/code/video/BAOTA_INSTALL.md)
+
+## Nginx 反向代理
+
+推荐将域名反向代理到：
+
+```text
+http://127.0.0.1:3000
 ```
 
-宝塔 / Nginx 反代建议追加：
+建议追加：
 
 ```nginx
 client_max_body_size 128m;
@@ -107,16 +228,58 @@ proxy_send_timeout 300s;
 proxy_read_timeout 300s;
 ```
 
-如果 `better-sqlite3` 在服务器安装失败，通常是缺少原生编译环境。Debian/Ubuntu 可安装：
+## 健康检查
+
+部署完成后，可通过以下接口确认服务状态：
 
 ```bash
-apt install -y python3 make g++
+curl https://your-domain.example.com/api/health
 ```
 
-## 部署要点
+期望返回：
 
-- 使用 Node.js 运行，不要部署到纯 Edge Runtime。
-- 挂载 SQLite 数据目录，避免容器重建后丢失任务记录。
-- 生产环境建议配置 R2 或同类对象存储；不要依赖服务器本地临时文件承载参考图。
-- 用量记录是本地 ledger：成功创建和重试任务后记录消耗，不做账户余额扣减。
-- 当前设计适合单实例部署；如果未来多实例扩容，建议迁移到 PostgreSQL。
+```json
+{
+  "ok": true,
+  "database": { "ok": true },
+  "r2Configured": true,
+  "serverSecretConfigured": true
+}
+```
+
+重点关注：
+
+- `ok`
+  服务与数据库是否正常
+- `serverSecretConfigured`
+  生产环境必须为 `true`
+- `r2Configured`
+  若为 `false`，说明当前未启用对象存储
+
+## 运维建议
+
+- 使用正式 SSL 证书，不要长期保留自签名证书
+- 生产环境启用 R2 或同类对象存储
+- SQLite 数据目录独立持久化
+- 上游长任务轮询间隔保持在 10-30 秒区间
+- 每次升级后先执行 `npm run build`
+- 对中转密钥、R2 密钥和 `SERVER_SECRET` 做定期轮换
+
+## 已知边界
+
+- 当前版本默认单实例部署，适合轻量工作台场景
+- 用量系统是本地记录，不等同于上游钱包系统
+- 视频文件不托管，完全依赖上游返回链接
+- 若未来扩展到多实例或更强运营能力，建议迁移到 PostgreSQL
+
+## 版权与使用限制
+
+本项目作者为苍洱。
+
+除非获得明确书面授权，否则：
+
+- 不得商用
+- 不得以白标、二开 SaaS、付费分发等方式再次销售
+- 不得移除作者与版权声明
+
+如需商业授权，请联系作者。
