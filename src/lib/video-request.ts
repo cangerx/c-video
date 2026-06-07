@@ -2,6 +2,8 @@ import { getUploadLimits, isR2Configured } from "./config";
 import { HttpError } from "./errors";
 import { uploadReferenceImageToR2 } from "./storage";
 
+const allowedSeconds = new Set([5, 10, 15]);
+
 function getFormFiles(formData: FormData) {
   return [...formData.getAll("media[]"), ...formData.getAll("media")].filter((item): item is File => item instanceof File);
 }
@@ -27,8 +29,23 @@ function assertRemoteUrl(value: string) {
 
 function assertSeconds(value: FormDataEntryValue | null) {
   const seconds = Number(value || 5);
-  if (!Number.isInteger(seconds) || seconds < 5 || seconds > 15) {
-    throw new HttpError("视频时长仅支持 5-15 秒。", 400, "invalid_seconds", "invalid_request_error");
+  if (!Number.isInteger(seconds) || !allowedSeconds.has(seconds)) {
+    throw new HttpError("视频时长仅支持 5 / 10 / 15 秒。", 400, "invalid_seconds", "invalid_request_error");
+  }
+
+  return seconds;
+}
+
+function resolveVideoModel(seconds: number) {
+  switch (seconds) {
+    case 5:
+      return "seedance_2_5s";
+    case 10:
+      return "seedance_2_10s";
+    case 15:
+      return "seedance_2_15s";
+    default:
+      throw new HttpError("当前时长暂不支持，请选择 5 / 10 / 15 秒。", 400, "invalid_seconds", "invalid_request_error");
   }
 }
 
@@ -127,7 +144,7 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   const remoteUrls = getRemoteUrls(formData);
   const totalReferences = files.length + remoteUrls.length;
 
-  assertSeconds(formData.get("seconds") || formData.get("duration"));
+  const seconds = assertSeconds(formData.get("seconds") || formData.get("duration"));
 
   if (totalReferences > limits.maxFiles) {
     throw new HttpError(`最多上传 ${limits.maxFiles} 张参考图。`, 400, "too_many_files", "invalid_request_error");
@@ -150,6 +167,8 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
       nextFormData.append(key, value);
     }
   }
+  nextFormData.set("seconds", String(seconds));
+  nextFormData.set("model", resolveVideoModel(seconds));
 
   const uploadedUrls: string[] = [];
   if (isR2Configured()) {

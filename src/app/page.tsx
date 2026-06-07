@@ -59,9 +59,9 @@ const aspectOptions = [
   { label: "3:4", size: "768x1024", name: "肖像", hint: "人物主体" },
   { label: "21:9", size: "1280x548", name: "宽银幕", hint: "电影感" }
 ];
-const secondOptions = Array.from({ length: 11 }, (_, index) => String(index + 5));
+const secondOptions = ["5", "10", "15"];
 const batchOptions = [1, 3, 5];
-const fixedModelId = "seedance_2";
+const fixedModelId = "seedance_2_15s";
 const fixedModelName = "Seedance 2.0";
 const fixedResolution = "720p";
 const maxUploadFiles = 9;
