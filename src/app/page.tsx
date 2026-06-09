@@ -140,6 +140,19 @@ function formatElapsedTime(startedAt: string | null | undefined, currentTime: nu
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function getElapsedMs(startedAt: string | null | undefined, currentTime: number) {
+  if (!startedAt) {
+    return 0;
+  }
+
+  const startedTime = new Date(startedAt).getTime();
+  if (!Number.isFinite(startedTime)) {
+    return 0;
+  }
+
+  return Math.max(0, currentTime - startedTime);
+}
+
 function getStepIndex(status?: VideoStatus, progress?: number | null) {
   if (status === "completed") {
     return runningSteps.length - 1;
@@ -298,6 +311,8 @@ export default function Home() {
 
   const activeStepIndex = getStepIndex(activeTask?.status, activeTask?.progress);
   const elapsedTime = useMemo(() => formatElapsedTime(activeTask?.createdAt, now), [activeTask?.createdAt, now]);
+  const activeTaskElapsedMs = useMemo(() => getElapsedMs(activeTask?.createdAt, now), [activeTask?.createdAt, now]);
+  const isActiveTaskDelayed = Boolean(activeTask && isRunning(activeTask.status) && activeTaskElapsedMs >= 60 * 60 * 1000);
   const remoteMediaUrlList = useMemo(() => getRemoteMediaUrls(mediaUrls), [mediaUrls]);
   const backgroundRunningTaskIds = useMemo(
     () =>
@@ -1039,6 +1054,7 @@ export default function Home() {
         notificationWatchIdsRef.current.add(body.storedTask.upstreamTaskId);
         nextUsageSummary = body.usage || nextUsageSummary;
         nextStorageMode = body.storageMode || nextStorageMode;
+        setError("");
         setActiveTask(body.storedTask);
         setTasks((current) => {
           const rest = current.filter((task) => task.upstreamTaskId !== body.storedTask.upstreamTaskId);
@@ -1049,6 +1065,7 @@ export default function Home() {
       setUsageSummary(nextUsageSummary);
       setLastStorageMode(nextStorageMode);
       setLastUploadedUrls(createdTasks[0]?.mediaUrls || []);
+      setError("");
       setNotice(`已提交 ${createdTasks.length} 条视频任务，可继续改写下一条。`);
     } catch (err) {
       if (isAbortError(err) || isStaleSubmit()) {
@@ -1448,6 +1465,9 @@ export default function Home() {
                   <span>
                     {getTaskDescription(activeTask, size, seconds)}
                   </span>
+                  {isActiveTaskDelayed ? (
+                    <p className="task-error">当前处于高峰期，资源较紧张。任务已进入长时等待队列，请耐心等待，系统仍会持续查询最新状态。</p>
+                  ) : null}
                 </div>
               )}
             </div>
