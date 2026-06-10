@@ -9,7 +9,6 @@ DEFAULT_PORT="3000"
 LOG_FILE="$PROJECT_DIR/.next-start.log"
 NODE_BIN=""
 NPM_BIN=""
-START_PID=""
 BRANCH="${1:-$DEFAULT_BRANCH}"
 
 collect_node_candidates() {
@@ -173,17 +172,20 @@ stop_existing_app() {
 
 start_app() {
   local port="$1"
+  local pids=""
 
   log "启动生产服务，端口 $port"
   : >"$LOG_FILE"
   PORT="$port" NODE_ENV=production nohup "$NPM_BIN" run start >"$LOG_FILE" 2>&1 &
-  START_PID="$!"
-  sleep 4
+  sleep 5
 
-  if ! kill -0 "$START_PID" 2>/dev/null; then
+  pids="$(get_port_pids "$port")"
+  if [ -z "$pids" ]; then
     tail -n 120 "$LOG_FILE" >&2 || true
-    fail "生产服务启动失败，请查看日志：$LOG_FILE"
+    fail "生产服务未监听端口 $port，请查看日志：$LOG_FILE"
   fi
+
+  log "生产服务监听端口 $port，进程: $pids"
 }
 
 check_health() {

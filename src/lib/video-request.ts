@@ -69,6 +69,18 @@ function resolveOutputSize(model: string, value: FormDataEntryValue | null) {
   return isHappyHorseModel(model) ? "1280x720" : "1280x720";
 }
 
+function assertResolution(model: string, value: FormDataEntryValue | null) {
+  const resolution = String(value || "720P").trim().toUpperCase();
+  if (!isHappyHorseModel(model)) {
+    return "720P";
+  }
+  if (resolution !== "720P" && resolution !== "1080P") {
+    throw new HttpError("HappyHorse 分辨率仅支持 720P / 1080P。", 400, "invalid_resolution", "invalid_request_error");
+  }
+
+  return resolution;
+}
+
 function parseChineseReferenceIndex(value: string) {
   const normalized = value.trim();
   if (/^\d+$/.test(normalized)) {
@@ -185,6 +197,7 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   const requestedModel = getRequestedModel(formData);
   const seconds = assertSeconds(formData.get("seconds") || formData.get("duration"));
   const size = resolveOutputSize(requestedModel, formData.get("size"));
+  const resolution = assertResolution(requestedModel, formData.get("resolution"));
 
   if (totalReferences > limits.maxFiles) {
     throw new HttpError(`最多上传 ${limits.maxFiles} 张参考图。`, 400, "too_many_files", "invalid_request_error");
@@ -215,6 +228,7 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   }
   nextFormData.set("seconds", String(seconds));
   nextFormData.set("size", size);
+  nextFormData.set("resolution", resolution);
   nextFormData.set("model", isHappyHorseModel(requestedModel) ? happyHorseModel : resolveVideoModel(seconds));
 
   const uploadedUrls: string[] = [];

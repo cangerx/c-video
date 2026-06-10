@@ -60,14 +60,15 @@ const aspectOptions = [
   { label: "21:9", size: "1280x548", name: "宽银幕", hint: "电影感" }
 ];
 const batchOptions = [1, 3, 5];
-const fixedResolution = "720p";
 const modelOptions = [
   {
     id: "seedance_2",
     name: "Seedance 2.0",
     eyebrow: "参考图创作",
     defaultSeconds: "15",
+    defaultResolution: "720P",
     seconds: ["5", "10", "15"],
+    resolutions: ["720P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
   },
   {
@@ -75,7 +76,9 @@ const modelOptions = [
     name: "HappyHorse 1.0",
     eyebrow: "长镜头优先",
     defaultSeconds: "15",
+    defaultResolution: "720P",
     seconds: ["15"],
+    resolutions: ["720P", "1080P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   }
 ];
@@ -303,6 +306,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState(modelOptions[0].id);
   const [seconds, setSeconds] = useState("15");
+  const [resolution, setResolution] = useState("720P");
   const [batchCount, setBatchCount] = useState(1);
   const [size, setSize] = useState("1280x720");
   const [aspect, setAspect] = useState("16:9");
@@ -350,6 +354,7 @@ export default function Home() {
     [currentModel]
   );
   const availableSecondOptions = currentModel.seconds;
+  const availableResolutionOptions = currentModel.resolutions;
   const remoteMediaUrlList = useMemo(() => getRemoteMediaUrls(mediaUrls), [mediaUrls]);
   const backgroundRunningTaskIds = useMemo(
     () =>
@@ -799,6 +804,7 @@ export default function Home() {
     const nextModel = getModelOption(modelId);
     setSelectedModel(nextModel.id);
     setSeconds(nextModel.defaultSeconds);
+    setResolution(nextModel.defaultResolution);
     if (!nextModel.ratios.includes(aspect)) {
       const fallbackAspect = aspectOptions.find((option) => option.label === "16:9");
       setAspect("16:9");
@@ -955,6 +961,7 @@ export default function Home() {
     formData.set("prompt", prompt.trim());
     formData.set("seconds", seconds);
     formData.set("size", size);
+    formData.set("resolution", resolution);
 
     nextMediaUrls.forEach((url) => formData.append("media_urls", url));
     nextFiles.forEach((file) => formData.append("media[]", file));
@@ -1383,7 +1390,7 @@ export default function Home() {
                 type="button"
                 onClick={() => setShowRatioPanel((value) => !value)}
               >
-                {currentModel.name} <i /> {aspect} <i /> {seconds} 秒
+                {currentModel.name} <i /> {resolution} <i /> {aspect} <i /> {seconds} 秒
               </button>
               {showRatioPanel ? (
                 <div className="ratio-popover" id="ratio-panel" role="group" aria-label="画面规格">
@@ -1408,7 +1415,21 @@ export default function Home() {
                       >
                         <span>{model.eyebrow}</span>
                         <strong>{model.name}</strong>
-                        <small>{model.id === "happyhorse-1.0" ? "默认 15 秒 · 720P" : "多画幅 · 720p"}</small>
+                        <small>{model.id === "happyhorse-1.0" ? "15 秒 · 720P / 1080P" : "多画幅 · 720P"}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <p>分辨率</p>
+                  <div className="resolution-grid">
+                    {availableResolutionOptions.map((option) => (
+                      <button
+                        className={resolution === option ? "selected" : ""}
+                        aria-pressed={resolution === option}
+                        key={option}
+                        type="button"
+                        onClick={() => setResolution(option)}
+                      >
+                        {option}
                       </button>
                     ))}
                   </div>

@@ -911,6 +911,7 @@ a {
 }
 
 .aspect-grid,
+.resolution-grid,
 .duration-grid {
   display: grid;
   gap: 8px;
@@ -919,6 +920,14 @@ a {
 
 .aspect-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.resolution-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid #e5eaf2;
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 4px;
 }
 
 .duration-grid {
@@ -931,6 +940,7 @@ a {
 }
 
 .aspect-grid button,
+.resolution-grid button,
 .duration-grid button {
   display: grid;
   align-items: center;
@@ -954,6 +964,7 @@ a {
   text-align: left;
 }
 
+.resolution-grid button,
 .duration-grid button {
   min-height: 36px;
   justify-content: center;
@@ -963,6 +974,7 @@ a {
 }
 
 .aspect-grid button:hover,
+.resolution-grid button:hover,
 .duration-grid button:hover {
   transform: translateY(-1px);
 }
@@ -1025,6 +1037,7 @@ a {
 }
 
 .aspect-grid button.selected,
+.resolution-grid button.selected,
 .duration-grid button.selected {
   background: #eef5ff;
   color: var(--blue);

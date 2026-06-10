@@ -147,6 +147,7 @@ function formDataToJsonPayload(formData: FormData) {
   const prompt = String(formData.get("prompt") || formData.get("input") || "");
   const seconds = Number(formData.get("seconds") || formData.get("duration") || 15);
   const size = String(formData.get("size") || "1280x720");
+  const resolution = String(formData.get("resolution") || "720P").toUpperCase() === "1080P" ? "1080P" : "720P";
   const mediaUrls = formData.getAll("media_urls").map(String).filter(Boolean);
 
   if (model === happyHorseModel) {
@@ -155,7 +156,7 @@ function formDataToJsonPayload(formData: FormData) {
       prompt,
       duration: Number.isFinite(seconds) ? seconds : 15,
       metadata: {
-        resolution: "720P",
+        resolution,
         ratio: sizeToRatio(size),
         prompt_extend: false,
         watermark: false
@@ -174,7 +175,7 @@ function formDataToJsonPayload(formData: FormData) {
   const payload: VideoJsonPayload = {};
 
   for (const [key, value] of formData.entries()) {
-    if (key === "media_urls") {
+    if (key === "media_urls" || key === "resolution") {
       continue;
     }
     payload[key] = String(value);
@@ -201,6 +202,7 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
     model: String(formData.get("model") || ""),
     seconds: String(formData.get("seconds") || ""),
     duration: String(formData.get("duration") || ""),
+    resolution: String(formData.get("resolution") || ""),
     size: String(formData.get("size") || ""),
     mediaUrlCount: mediaUrls.length,
     mediaUrls,
