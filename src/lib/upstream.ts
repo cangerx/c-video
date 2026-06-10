@@ -11,6 +11,8 @@ type VideoJsonPayload = Record<string, unknown> & {
   references?: Array<{ name: string; url: string }>;
 };
 
+const happyHorseModel = "happyhorse-1.0";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -125,9 +127,51 @@ function hasFormDataFiles(formData: FormData) {
   return Array.from(formData.values()).some((value) => value instanceof File);
 }
 
+function sizeToRatio(size: string) {
+  switch (size) {
+    case "720x1280":
+      return "9:16";
+    case "1024x1024":
+      return "1:1";
+    case "1024x768":
+      return "4:3";
+    case "768x1024":
+      return "3:4";
+    default:
+      return "16:9";
+  }
+}
+
 function formDataToJsonPayload(formData: FormData) {
-  const payload: VideoJsonPayload = {};
+  const model = String(formData.get("model") || "");
+  const prompt = String(formData.get("prompt") || formData.get("input") || "");
+  const seconds = Number(formData.get("seconds") || formData.get("duration") || 15);
+  const size = String(formData.get("size") || "1280x720");
   const mediaUrls = formData.getAll("media_urls").map(String).filter(Boolean);
+
+  if (model === happyHorseModel) {
+    const payload: VideoJsonPayload = {
+      model,
+      prompt,
+      duration: Number.isFinite(seconds) ? seconds : 15,
+      metadata: {
+        resolution: "720P",
+        ratio: sizeToRatio(size),
+        prompt_extend: false,
+        watermark: false
+      }
+    };
+
+    if (mediaUrls.length === 1) {
+      payload.input_reference = mediaUrls[0];
+    } else if (mediaUrls.length > 1) {
+      payload.input_reference = mediaUrls;
+    }
+
+    return payload;
+  }
+
+  const payload: VideoJsonPayload = {};
 
   for (const [key, value] of formData.entries()) {
     if (key === "media_urls") {
@@ -156,6 +200,7 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
     mode: payload ? "json" : "multipart",
     model: String(formData.get("model") || ""),
     seconds: String(formData.get("seconds") || ""),
+    duration: String(formData.get("duration") || ""),
     size: String(formData.get("size") || ""),
     mediaUrlCount: mediaUrls.length,
     mediaUrls,

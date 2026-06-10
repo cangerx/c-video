@@ -3,6 +3,8 @@ import { HttpError } from "./errors";
 import { uploadReferenceImageToR2 } from "./storage";
 
 const allowedSeconds = new Set([5, 10, 15]);
+const happyHorseModel = "happyhorse-1.0";
+const seedanceModels = new Set(["seedance_2", "seedance_2_5s", "seedance_2_10s", "seedance_2_15s"]);
 
 function getFormFiles(formData: FormData) {
   return [...formData.getAll("media[]"), ...formData.getAll("media")].filter((item): item is File => item instanceof File);
@@ -47,6 +49,24 @@ function resolveVideoModel(seconds: number) {
     default:
       throw new HttpError("当前时长暂不支持，请选择 5 / 10 / 15 秒。", 400, "invalid_seconds", "invalid_request_error");
   }
+}
+
+function getRequestedModel(formData: FormData) {
+  const model = String(formData.get("model") || "").trim();
+  return model || "seedance_2";
+}
+
+function isHappyHorseModel(model: string) {
+  return model === happyHorseModel;
+}
+
+function resolveOutputSize(model: string, value: FormDataEntryValue | null) {
+  const size = String(value || "").trim();
+  if (size) {
+    return size;
+  }
+
+  return isHappyHorseModel(model) ? "1280x720" : "1280x720";
 }
 
 function parseChineseReferenceIndex(value: string) {
@@ -112,6 +132,24 @@ function collectPromptReferenceIndexes(prompt: string) {
   return Array.from(indexes).sort((a, b) => a - b);
 }
 
+function validatePromptReferenceCount(formData: FormData, referenceCount: number) {
+  const promptKey = formData.has("prompt") ? "prompt" : formData.has("input") ? "input" : "";
+  if (!promptKey) {
+    return;
+  }
+
+  const prompt = String(formData.get(promptKey) || "");
+  const missingIndexes = collectPromptReferenceIndexes(prompt).filter((index) => index > referenceCount);
+  if (missingIndexes.length) {
+    throw new HttpError(
+      `提示词引用了 ${missingIndexes.map((index) => `@IMG_${index}`).join("、")}，但当前只有 ${referenceCount} 张参考图。`,
+      400,
+      "missing_reference_image",
+      "invalid_request_error"
+    );
+  }
+}
+
 function normalizeFormPromptReferences(formData: FormData, referenceCount: number) {
   const promptKey = formData.has("prompt") ? "prompt" : formData.has("input") ? "input" : "";
   if (!promptKey) {
@@ -144,10 +182,18 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   const remoteUrls = getRemoteUrls(formData);
   const totalReferences = files.length + remoteUrls.length;
 
+  const requestedModel = getRequestedModel(formData);
   const seconds = assertSeconds(formData.get("seconds") || formData.get("duration"));
+  const size = resolveOutputSize(requestedModel, formData.get("size"));
 
   if (totalReferences > limits.maxFiles) {
     throw new HttpError(`最多上传 ${limits.maxFiles} 张参考图。`, 400, "too_many_files", "invalid_request_error");
+  }
+  if (!isHappyHorseModel(requestedModel) && !seedanceModels.has(requestedModel)) {
+    throw new HttpError("当前模型暂不支持。", 400, "invalid_model", "invalid_request_error");
+  }
+  if (isHappyHorseModel(requestedModel) && seconds !== 15) {
+    throw new HttpError("HappyHorse 当前仅支持 15 秒视频。", 400, "invalid_seconds", "invalid_request_error");
   }
 
   remoteUrls.forEach(assertRemoteUrl);
@@ -168,7 +214,8 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
     }
   }
   nextFormData.set("seconds", String(seconds));
-  nextFormData.set("model", resolveVideoModel(seconds));
+  nextFormData.set("size", size);
+  nextFormData.set("model", isHappyHorseModel(requestedModel) ? happyHorseModel : resolveVideoModel(seconds));
 
   const uploadedUrls: string[] = [];
   if (isR2Configured()) {
@@ -185,13 +232,17 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   }
 
   const mediaUrls = [...remoteUrls, ...uploadedUrls];
-  normalizeFormPromptReferences(nextFormData, mediaUrls.length);
+  if (isHappyHorseModel(requestedModel)) {
+    validatePromptReferenceCount(nextFormData, mediaUrls.length);
+  } else {
+    normalizeFormPromptReferences(nextFormData, mediaUrls.length);
+  }
   mediaUrls.forEach((url) => nextFormData.append("media_urls", url));
 
   return {
     formData: nextFormData,
     mediaUrls,
-    costUnits: calculateCostUnits(String(formData.get("seconds") || "5")),
+    costUnits: calculateCostUnits(String(seconds)),
     storageMode: isR2Configured() ? "r2" : "direct"
   };
 }

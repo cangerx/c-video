@@ -59,11 +59,26 @@ const aspectOptions = [
   { label: "3:4", size: "768x1024", name: "肖像", hint: "人物主体" },
   { label: "21:9", size: "1280x548", name: "宽银幕", hint: "电影感" }
 ];
-const secondOptions = ["5", "10", "15"];
 const batchOptions = [1, 3, 5];
-const fixedModelId = "seedance_2_15s";
-const fixedModelName = "Seedance 2.0";
 const fixedResolution = "720p";
+const modelOptions = [
+  {
+    id: "seedance_2",
+    name: "Seedance 2.0",
+    eyebrow: "参考图创作",
+    defaultSeconds: "15",
+    seconds: ["5", "10", "15"],
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+  },
+  {
+    id: "happyhorse-1.0",
+    name: "HappyHorse 1.0",
+    eyebrow: "长镜头优先",
+    defaultSeconds: "15",
+    seconds: ["15"],
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+  }
+];
 const maxUploadFiles = 9;
 const maxUploadFileSizeMb = 10;
 const maxUploadFileBytes = maxUploadFileSizeMb * 1024 * 1024;
@@ -241,6 +256,21 @@ function getAspectBySize(value: string | null | undefined) {
   return aspectOptions.find((option) => option.size === value)?.label || "16:9";
 }
 
+function getModelOption(modelId: string | null | undefined) {
+  if (!modelId) {
+    return modelOptions[0];
+  }
+  if (modelId.startsWith("seedance_2")) {
+    return modelOptions[0];
+  }
+
+  return modelOptions.find((option) => option.id === modelId) || modelOptions[0];
+}
+
+function getModelName(modelId: string | null | undefined) {
+  return getModelOption(modelId).name;
+}
+
 function getTaskCostUnits(task: StoredVideoTask, _fallbackSeconds: string) {
   return task.costUnits > 0 ? task.costUnits : 1;
 }
@@ -271,6 +301,7 @@ export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState(modelOptions[0].id);
   const [seconds, setSeconds] = useState("15");
   const [batchCount, setBatchCount] = useState(1);
   const [size, setSize] = useState("1280x720");
@@ -313,6 +344,12 @@ export default function Home() {
   const elapsedTime = useMemo(() => formatElapsedTime(activeTask?.createdAt, now), [activeTask?.createdAt, now]);
   const activeTaskElapsedMs = useMemo(() => getElapsedMs(activeTask?.createdAt, now), [activeTask?.createdAt, now]);
   const isActiveTaskDelayed = Boolean(activeTask && isRunning(activeTask.status) && activeTaskElapsedMs >= 60 * 60 * 1000);
+  const currentModel = useMemo(() => getModelOption(selectedModel), [selectedModel]);
+  const availableAspectOptions = useMemo(
+    () => aspectOptions.filter((option) => currentModel.ratios.includes(option.label)),
+    [currentModel]
+  );
+  const availableSecondOptions = currentModel.seconds;
   const remoteMediaUrlList = useMemo(() => getRemoteMediaUrls(mediaUrls), [mediaUrls]);
   const backgroundRunningTaskIds = useMemo(
     () =>
@@ -755,6 +792,18 @@ export default function Home() {
     if (option) {
       setSize(option.size);
     }
+    setShowRatioPanel(false);
+  }
+
+  function selectModel(modelId: string) {
+    const nextModel = getModelOption(modelId);
+    setSelectedModel(nextModel.id);
+    setSeconds(nextModel.defaultSeconds);
+    if (!nextModel.ratios.includes(aspect)) {
+      const fallbackAspect = aspectOptions.find((option) => option.label === "16:9");
+      setAspect("16:9");
+      setSize(fallbackAspect?.size || "1280x720");
+    }
   }
 
   function handleLogin() {
@@ -856,6 +905,9 @@ export default function Home() {
     if (task.seconds) {
       setSeconds(task.seconds);
     }
+    if (task.model) {
+      setSelectedModel(getModelOption(task.model).id);
+    }
     if (task.size) {
       setSize(task.size);
       setAspect(getAspectBySize(task.size));
@@ -879,6 +931,9 @@ export default function Home() {
         if (freshTask.seconds) {
           setSeconds(freshTask.seconds);
         }
+        if (freshTask.model) {
+          setSelectedModel(getModelOption(freshTask.model).id);
+        }
         if (freshTask.size) {
           setSize(freshTask.size);
           setAspect(getAspectBySize(freshTask.size));
@@ -896,7 +951,7 @@ export default function Home() {
     const formData = new FormData();
     const nextMediaUrls = options.mediaUrls ?? remoteMediaUrlList;
     const nextFiles = options.files ?? files;
-    formData.set("model", fixedModelId);
+    formData.set("model", selectedModel);
     formData.set("prompt", prompt.trim());
     formData.set("seconds", seconds);
     formData.set("size", size);
@@ -1320,11 +1375,6 @@ export default function Home() {
           </div>
 
           <div className="control-row">
-            <div className="model-pill" aria-label="当前模型">
-              <span>◈</span>
-              <strong>{fixedModelName}</strong>
-            </div>
-
             <div className="ratio-wrap">
               <button
                 aria-controls="ratio-panel"
@@ -1333,22 +1383,38 @@ export default function Home() {
                 type="button"
                 onClick={() => setShowRatioPanel((value) => !value)}
               >
-                {aspect} <i /> {fixedResolution} <i /> {seconds} 秒
+                {currentModel.name} <i /> {aspect} <i /> {seconds} 秒
               </button>
               {showRatioPanel ? (
                 <div className="ratio-popover" id="ratio-panel" role="group" aria-label="画面规格">
                   <div className="ratio-panel-head">
                     <div>
-                      <strong>画面规格</strong>
-                      <span>{fixedResolution} Master</span>
+                      <strong>生成规格</strong>
+                      <span>选择模型、画幅和时长</span>
                     </div>
                     <button type="button" onClick={() => setShowRatioPanel(false)} aria-label="关闭画面规格面板">
                       ×
                     </button>
                   </div>
+                  <p>模型</p>
+                  <div className="model-grid">
+                    {modelOptions.map((model) => (
+                      <button
+                        aria-pressed={selectedModel === model.id}
+                        className={selectedModel === model.id ? "selected" : ""}
+                        key={model.id}
+                        type="button"
+                        onClick={() => selectModel(model.id)}
+                      >
+                        <span>{model.eyebrow}</span>
+                        <strong>{model.name}</strong>
+                        <small>{model.id === "happyhorse-1.0" ? "默认 15 秒 · 720P" : "多画幅 · 720p"}</small>
+                      </button>
+                    ))}
+                  </div>
                   <p>画幅比例</p>
                   <div className="aspect-grid">
-                    {aspectOptions.map((option) => (
+                    {availableAspectOptions.map((option) => (
                       <button
                         className={aspect === option.label ? "selected" : ""}
                         aria-pressed={aspect === option.label}
@@ -1367,7 +1433,7 @@ export default function Home() {
                     <strong>{seconds} 秒</strong>
                   </div>
                   <div className="duration-grid">
-                    {secondOptions.map((option) => (
+                    {availableSecondOptions.map((option) => (
                       <button
                         className={seconds === option ? "selected" : ""}
                         aria-pressed={seconds === option}
@@ -1526,8 +1592,14 @@ export default function Home() {
         ) : null}
 
         <footer className="app-footer">
-          <span>C-AI</span>
-          <small>作者 苍洱 · 未经授权不得商用</small>
+          <div className="footer-brand">
+            <span className="footer-mark">C</span>
+            <div>
+              <strong>C-AI</strong>
+              <small>© 2026 苍洱 · All rights reserved</small>
+            </div>
+          </div>
+          <div className="footer-legal">未经授权不得商用</div>
         </footer>
       </section>
 
@@ -1567,7 +1639,7 @@ export default function Home() {
                       <span className="history-cost">用量 {getTaskCostUnits(task, seconds)} 次</span>
                     </div>
                     <strong>{task.prompt || "未保存提示词"}</strong>
-                    <small>{fixedModelName} · {task.seconds || "--"}s · {formatDateTime(task.updatedAt)}</small>
+                    <small>{getModelName(task.model)} · {task.seconds || "--"}s · {formatDateTime(task.updatedAt)}</small>
                     <div className="history-actions">
                       <button
                         type="button"
@@ -1646,7 +1718,7 @@ export default function Home() {
               </div>
               <div>
                 <span>模型</span>
-                <strong>{detailTask.model || fixedModelName}</strong>
+                <strong>{getModelName(detailTask.model)}</strong>
               </div>
             </div>
             <div className="detail-prompt">

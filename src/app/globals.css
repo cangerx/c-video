@@ -62,21 +62,63 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18px;
+  margin-top: 26px;
+  border: 1px solid rgba(214, 221, 232, 0.76);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.82)),
+    radial-gradient(circle at 12% 20%, rgba(22, 119, 255, 0.08), transparent 32%);
+  box-shadow: 0 18px 48px rgba(32, 41, 57, 0.08);
+  padding: 14px 16px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-top: 22px;
-  color: #7d8795;
-  font-size: 12px;
-  font-weight: 850;
+  min-width: 0;
 }
 
-.app-footer span {
-  color: #3a4351;
-  letter-spacing: 0.08em;
+.footer-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #151821;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  box-shadow: 0 12px 28px rgba(21, 24, 33, 0.18);
 }
 
-.app-footer small {
-  color: #8e98a6;
+.footer-brand strong {
+  display: block;
+  color: #1f2530;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.footer-brand small {
+  display: block;
+  margin-top: 3px;
+  color: #8a94a3;
   font-size: 12px;
+  font-weight: 800;
+}
+
+.footer-legal {
+  border: 1px solid rgba(21, 24, 33, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #4d5868;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
 }
 
 .promo-ticker {
@@ -677,7 +719,6 @@ a {
   }
 }
 
-.model-pill,
 .control-pill {
   display: inline-flex;
   min-height: 48px;
@@ -692,12 +733,47 @@ a {
   font-weight: 900;
 }
 
-.model-pill span {
-  color: var(--blue);
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.model-pill strong {
+.model-grid button {
+  display: grid;
+  min-height: 86px;
+  border: 1px solid #e5eaf2;
+  border-radius: 7px;
+  background: transparent;
+  color: #4d5868;
+  padding: 12px;
+  text-align: left;
+}
+
+.model-grid button.selected {
+  background: #151821;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(21, 24, 33, 0.16);
+}
+
+.model-grid span {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.model-grid strong {
   white-space: nowrap;
+  font-size: 16px;
+}
+
+.model-grid small {
+  color: #8790a0;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .ratio-pill {
@@ -1970,7 +2046,6 @@ button:disabled {
   }
 
   .asset-tile,
-  .model-pill,
   .control-pill,
   .batch-picker,
   .send-button {
@@ -1980,6 +2055,17 @@ button:disabled {
 
   .send-button {
     margin-left: 0;
+  }
+
+  .app-footer {
+    align-items: stretch;
+    flex-direction: column;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .footer-legal {
+    text-align: center;
   }
 
   .ratio-popover {
