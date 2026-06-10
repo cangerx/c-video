@@ -9,6 +9,7 @@ DEFAULT_PORT="3000"
 LOG_FILE="$PROJECT_DIR/.next-start.log"
 NODE_BIN=""
 NPM_BIN=""
+START_PID=""
 BRANCH="${1:-$DEFAULT_BRANCH}"
 
 collect_node_candidates() {
@@ -110,11 +111,49 @@ get_app_port() {
   printf '%s' "$port"
 }
 
+get_port_pids() {
+  local port="$1"
+  local pids=""
+
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(
+      {
+        lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+        lsof -t -i:"$port" 2>/dev/null || true
+      } | sort -u
+    )"
+  fi
+
+  if [ -z "$pids" ] && command -v fuser >/dev/null 2>&1; then
+    pids="$(fuser -n tcp "$port" 2>/dev/null | tr ' ' '\n' | sort -u || true)"
+  fi
+
+  if [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
+    pids="$(ss -ltnp "sport = :$port" 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | sort -u || true)"
+  fi
+
+  printf '%s' "$pids"
+}
+
+wait_port_closed() {
+  local port="$1"
+  local attempt=""
+
+  for attempt in 1 2 3 4 5; do
+    if [ -z "$(get_port_pids "$port")" ]; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
 stop_existing_app() {
   local port="$1"
   local pids=""
 
-  pids="$(lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  pids="$(get_port_pids "$port")"
   if [ -z "$pids" ]; then
     log "端口 $port 没有运行中的旧进程"
     return 0
@@ -122,12 +161,13 @@ stop_existing_app() {
 
   log "停止端口 $port 旧进程: $pids"
   kill $pids 2>/dev/null || true
-  sleep 2
+  wait_port_closed "$port" || true
 
-  pids="$(lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  pids="$(get_port_pids "$port")"
   if [ -n "$pids" ]; then
     log "旧进程未退出，强制停止: $pids"
     kill -9 $pids 2>/dev/null || true
+    wait_port_closed "$port" || fail "端口 $port 仍被占用，请手动检查：ss -ltnp 'sport = :$port'"
   fi
 }
 
@@ -137,18 +177,28 @@ start_app() {
   log "启动生产服务，端口 $port"
   : >"$LOG_FILE"
   PORT="$port" NODE_ENV=production nohup "$NPM_BIN" run start >"$LOG_FILE" 2>&1 &
-  sleep 3
+  START_PID="$!"
+  sleep 4
+
+  if ! kill -0 "$START_PID" 2>/dev/null; then
+    tail -n 120 "$LOG_FILE" >&2 || true
+    fail "生产服务启动失败，请查看日志：$LOG_FILE"
+  fi
 }
 
 check_health() {
   local port="$1"
   local url="http://127.0.0.1:$port/api/health"
+  local attempt=""
 
   log "检查健康接口 $url"
-  if curl -fsS "$url" >/dev/null; then
-    log "健康检查通过"
-    return 0
-  fi
+  for attempt in 1 2 3 4 5; do
+    if curl -fsS "$url" >/dev/null; then
+      log "健康检查通过"
+      return 0
+    fi
+    sleep 2
+  done
 
   tail -n 80 "$LOG_FILE" >&2 || true
   fail "健康检查失败，请查看日志：$LOG_FILE"
