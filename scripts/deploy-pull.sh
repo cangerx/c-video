@@ -5,6 +5,8 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DEFAULT_BRANCH="main"
 DEFAULT_NODE_MAJOR="20"
+DEFAULT_PORT="3000"
+LOG_FILE="$PROJECT_DIR/.next-start.log"
 NODE_BIN=""
 NPM_BIN=""
 BRANCH="${1:-$DEFAULT_BRANCH}"
@@ -97,7 +99,64 @@ check_env_file() {
   fi
 }
 
+get_app_port() {
+  local port="$DEFAULT_PORT"
+
+  if [ -f "$PROJECT_DIR/.env.production" ]; then
+    port="$(grep -E '^PORT=' "$PROJECT_DIR/.env.production" | tail -n 1 | cut -d '=' -f 2- || true)"
+    port="${port:-$DEFAULT_PORT}"
+  fi
+
+  printf '%s' "$port"
+}
+
+stop_existing_app() {
+  local port="$1"
+  local pids=""
+
+  pids="$(lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  if [ -z "$pids" ]; then
+    log "端口 $port 没有运行中的旧进程"
+    return 0
+  fi
+
+  log "停止端口 $port 旧进程: $pids"
+  kill $pids 2>/dev/null || true
+  sleep 2
+
+  pids="$(lsof -t -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  if [ -n "$pids" ]; then
+    log "旧进程未退出，强制停止: $pids"
+    kill -9 $pids 2>/dev/null || true
+  fi
+}
+
+start_app() {
+  local port="$1"
+
+  log "启动生产服务，端口 $port"
+  : >"$LOG_FILE"
+  PORT="$port" NODE_ENV=production nohup "$NPM_BIN" run start >"$LOG_FILE" 2>&1 &
+  sleep 3
+}
+
+check_health() {
+  local port="$1"
+  local url="http://127.0.0.1:$port/api/health"
+
+  log "检查健康接口 $url"
+  if curl -fsS "$url" >/dev/null; then
+    log "健康检查通过"
+    return 0
+  fi
+
+  tail -n 80 "$LOG_FILE" >&2 || true
+  fail "健康检查失败，请查看日志：$LOG_FILE"
+}
+
 main() {
+  local port=""
+
   cd "$PROJECT_DIR"
   check_git_repo
   check_node
@@ -114,15 +173,22 @@ main() {
   log "执行生产构建"
   "$NPM_BIN" run build
 
+  port="$(get_app_port)"
+  stop_existing_app "$port"
+  start_app "$port"
+  check_health "$port"
+
   cat <<EOF
 
 [deploy] 更新完成。
 
-下一步：
-1. 在宝塔 Node 项目中重启服务
-2. 或使用你的进程管理器重启当前应用
-3. 检查健康接口：
-   curl http://127.0.0.1:3000/api/health
+服务已自动重启。
+
+检查命令：
+   curl http://127.0.0.1:$port/api/health
+
+运行日志：
+   tail -n 120 $LOG_FILE
 
 EOF
 }
