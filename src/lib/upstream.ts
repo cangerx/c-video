@@ -150,14 +150,11 @@ function formDataToJsonPayload(formData: FormData) {
   const resolution = String(formData.get("resolution") || "720P").toUpperCase() === "1080P" ? "1080P" : "720P";
   const mediaUrls = formData.getAll("media_urls").map(String).filter(Boolean);
 
-  const payload: VideoJsonPayload = {
-    model,
-    prompt,
-    parameters: { resolution }
-  };
-
   if (model === happyHorseModel) {
-    Object.assign(payload, {
+    const payload: VideoJsonPayload = {
+      model,
+      prompt,
+      parameters: { resolution },
       duration: Number.isFinite(seconds) ? seconds : 15,
       metadata: {
         resolution,
@@ -165,7 +162,7 @@ function formDataToJsonPayload(formData: FormData) {
         prompt_extend: false,
         watermark: false
       }
-    });
+    };
 
     if (mediaUrls.length === 1) {
       payload.input_reference = mediaUrls[0];
@@ -176,8 +173,13 @@ function formDataToJsonPayload(formData: FormData) {
     return payload;
   }
 
+  const payload: VideoJsonPayload = {
+    model,
+    prompt
+  };
+
   for (const [key, value] of formData.entries()) {
-    if (key === "media_urls" || key === "resolution" || key === "model" || key === "prompt") {
+    if (key === "media_urls" || key === "resolution") {
       continue;
     }
     payload[key] = String(value);
