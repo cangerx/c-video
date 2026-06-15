@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>视频工作台 · 接口在线调试</title>
+  <style>
+    :root {
+      --bg: #0f1115; --card: #171a21; --line: #2a2f3a; --ink: #e6e9ef;
+      --muted: #9aa3b2; --blue: #4f8cff; --green: #2ecc71; --red: #ff5a5a; --amber: #ffb84d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    header { padding: 20px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0;
+      background: rgba(15,17,21,.92); backdrop-filter: blur(8px); z-index: 10; }
+    header h1 { margin: 0 0 4px; font-size: 18px; }
+    header p { margin: 0; color: var(--muted); font-size: 12px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 24px 80px; }
+    .config { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 20px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .config label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea { width: 100%; background: #0e1117; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+    textarea { resize: vertical; min-height: 60px; }
+    .ep { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+    .ep-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; }
+    .ep-head:hover { background: #1c2029; }
+    .method { font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; min-width: 52px; text-align: center; }
+    .m-get { background: rgba(79,140,255,.15); color: var(--blue); }
+    .m-post { background: rgba(46,204,113,.15); color: var(--green); }
+    .ep-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+    .ep-desc { color: var(--muted); font-size: 12px; margin-left: auto; }
+    .ep-body { padding: 0 16px 16px; border-top: 1px solid var(--line); display: none; }
+    .ep-body.open { display: block; }
+    .field { margin-top: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .btn { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 9px 18px;
+      font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { transform: scale(.98); }
+    .resp { margin-top: 12px; }
+    .resp pre { background: #0a0c10; border: 1px solid var(--line); border-radius: 8px;
+      padding: 12px; overflow: auto; max-height: 360px; font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-all; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .b-ok { background: rgba(46,204,113,.15); color: var(--green); }
+    .b-err { background: rgba(255,90,90,.15); color: var(--red); }
+    .hint { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .placeholder-fill { color: var(--amber); font-size: 11px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>视频工作台 · 接口在线调试</h1>
+  <p>填入中转密钥后展开任一接口，点「发送请求」直接调用本站 API。鉴权：<code>x-video-api-key</code> 头。</p>
+</header>
+<div class="wrap">
+  <div class="config">
+    <div>
+      <label>Base URL</label>
+      <input id="baseUrl" value="" placeholder="留空=当前站点" />
+      <div class="hint">留空则用当前域名（同源）。</div>
+    </div>
+    <div>
+      <label>API Key（中转密钥）</label>
+      <input id="apiKey" type="password" placeholder="sk-..." />
+      <div class="hint">仅保存在浏览器 localStorage，不会上传。创建/重试会真实计费。</div>
+    </div>
+  </div>
+  <div id="eps"></div>
+</div>
+<!-- ENDPOINTS_SCRIPT -->
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const baseEl = $("#baseUrl"), keyEl = $("#apiKey");
+baseEl.value = localStorage.getItem("dbg_base") || "";
+keyEl.value = localStorage.getItem("dbg_key") || "";
+baseEl.addEventListener("change", () => localStorage.setItem("dbg_base", baseEl.value.trim()));
+keyEl.addEventListener("change", () => localStorage.setItem("dbg_key", keyEl.value.trim()));
+
+// 接口定义：method, path, desc, auth, 字段表单
+const ENDPOINTS = [
+  {
+    method: "GET", path: "/api/health", desc: "健康检查（无需密钥）", auth: false, fields: []
+  },
+  {
+    method: "GET", path: "/api/videos", desc: "任务列表 + 用量", auth: true,
+    fields: [{ name: "limit", type: "text", def: "30", query: true, hint: "返回条数，默认 30" }]
+  },
+  {
+    method: "POST", path: "/api/videos", desc: "创建视频任务（计费）", auth: true, multipart: true,
+    fields: [
+      { name: "prompt", type: "textarea", def: "一只橘猫在窗台上缓慢转身，镜头稳定，竖屏构图", hint: "必填，≤3500 字" },
+      { name: "model", type: "select", def: "seedance-2.0",
+        options: ["seedance-2", "seedance-2.0", "seedance-2-vip", "happyhorse-1.0"],
+        hint: "1080P 仅 seedance-2.0 / happyhorse-1.0 支持" },
+      { name: "seconds", type: "select", def: "15", options: ["15"], hint: "目前仅 15 秒" },
+      { name: "resolution", type: "select", def: "720P", options: ["720P", "1080P"] },
+      { name: "size", type: "select", def: "1280x720",
+        options: ["1280x720", "720x1280", "1024x1024", "1024x768", "768x1024", "1920x1080", "1080x1920"],
+        hint: "画幅对应像素；映射为 ratio 传上游" },
+      { name: "media_urls", type: "text", def: "", hint: "可选，参考图公网 URL，多个用逗号或换行分隔" }
+    ]
+  },
+  {
+    method: "GET", path: "/api/videos/{id}", desc: "查询单个任务状态", auth: true,
+    fields: [{ name: "id", type: "text", def: "", pathParam: true, hint: "上游返回的 task_id" }]
+  },
+  {
+    method: "POST", path: "/api/videos/{id}/cancel", desc: "取消任务（文档未列，需验证）", auth: true,
+    fields: [{ name: "id", type: "text", def: "", pathParam: true, hint: "task_id" }]
+  },
+  {
+    method: "POST", path: "/api/videos/{id}/retry", desc: "重试任务（计费，文档未列）", auth: true,
+    fields: [{ name: "id", type: "text", def: "", pathParam: true, hint: "task_id" }]
+  },
+  {
+    method: "POST", path: "/api/uploads", desc: "上传参考图到 R2（需配置 R2）", auth: true, multipart: true,
+    fields: [{ name: "media[]", type: "file", multiple: true, hint: "图片文件，可多选；未配置 R2 返回空列表" }]
+  }
+];
+<!-- RENDER_SCRIPT -->
+function fieldId(epIdx, name) { return `f_${epIdx}_${name.replace(/[^a-z0-9]/gi, "_")}`; }
+
+function renderField(epIdx, f) {
+  const id = fieldId(epIdx, f.name);
+  let control = "";
+  if (f.type === "textarea") {
+    control = `<textarea id="${id}">${f.def || ""}</textarea>`;
+  } else if (f.type === "select") {
+    const opts = (f.options || []).map((o) => `<option${o === f.def ? " selected" : ""}>${o}</option>`).join("");
+    control = `<select id="${id}">${opts}</select>`;
+  } else if (f.type === "file") {
+    control = `<input id="${id}" type="file"${f.multiple ? " multiple" : ""} accept="image/*" />`;
+  } else {
+    control = `<input id="${id}" value="${f.def || ""}" />`;
+  }
+  const tag = f.pathParam ? '<span class="placeholder-fill">路径参数</span>' : f.query ? '<span class="hint">query</span>' : "";
+  return `<div class="field"><label>${f.name} ${tag}</label>${control}${f.hint ? `<div class="hint">${f.hint}</div>` : ""}</div>`;
+}
+
+function render() {
+  const root = $("#eps");
+  root.innerHTML = ENDPOINTS.map((ep, i) => {
+    const mClass = ep.method === "GET" ? "m-get" : "m-post";
+    const fields = ep.fields.map((f) => renderField(i, f)).join("");
+    return `<div class="ep">
+      <div class="ep-head" onclick="toggle(${i})">
+        <span class="method ${mClass}">${ep.method}</span>
+        <span class="ep-path">${ep.path}</span>
+        <span class="ep-desc">${ep.desc}</span>
+      </div>
+      <div class="ep-body" id="body_${i}">
+        ${fields || '<div class="hint">无参数</div>'}
+        <button class="btn" onclick="send(${i})">发送请求</button>
+        <div class="resp" id="resp_${i}"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function toggle(i) { $(`#body_${i}`).classList.toggle("open"); }
+
+async function send(i) {
+  const ep = ENDPOINTS[i];
+  const base = (baseEl.value.trim() || location.origin).replace(/\/+$/, "");
+  const key = keyEl.value.trim();
+  let path = ep.path;
+  const respEl = $(`#resp_${i}`);
+
+  // 路径参数替换
+  const pathField = ep.fields.find((f) => f.pathParam);
+  if (pathField) {
+    const v = $(`#${fieldId(i, pathField.name)}`).value.trim();
+    if (!v) { respEl.innerHTML = '<span class="badge b-err">缺少路径参数 id</span>'; return; }
+    path = path.replace(`{${pathField.name}}`, encodeURIComponent(v));
+  }
+
+  // query 参数
+  const qs = new URLSearchParams();
+  ep.fields.filter((f) => f.query).forEach((f) => {
+    const v = $(`#${fieldId(i, f.name)}`).value.trim();
+    if (v) qs.set(f.name, v);
+  });
+  let url = base + path + (qs.toString() ? `?${qs}` : "");
+
+  const headers = {};
+  if (ep.auth && key) headers["x-video-api-key"] = key;
+
+  let body;
+  if (ep.method === "POST" && ep.multipart) {
+    const fd = new FormData();
+    for (const f of ep.fields) {
+      if (f.pathParam) continue;
+      const el = $(`#${fieldId(i, f.name)}`);
+      if (f.type === "file") {
+        for (const file of el.files) fd.append(f.name, file);
+      } else {
+        const v = el.value.trim();
+        if (v) fd.append(f.name, v);
+      }
+    }
+    body = fd; // 不手动设 Content-Type，浏览器自动带 boundary
+  }
+
+  respEl.innerHTML = '<span class="hint">请求中…</span>';
+  const t0 = performance.now();
+  try {
+    const res = await fetch(url, { method: ep.method, headers, body });
+    const ms = Math.round(performance.now() - t0);
+    const text = await res.text();
+    let pretty = text;
+    try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+    const badge = res.ok ? `<span class="badge b-ok">HTTP ${res.status}</span>` : `<span class="badge b-err">HTTP ${res.status}</span>`;
+    respEl.innerHTML = `${badge} <span class="hint">${ms}ms · ${ep.method} ${path}</span><pre>${escapeHtml(pretty)}</pre>`;
+  } catch (err) {
+    respEl.innerHTML = `<span class="badge b-err">请求失败</span><pre>${escapeHtml(String(err))}</pre>`;
+  }
+}
+
+function escapeHtml(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+render();
+</script>
+</body>
+</html>
