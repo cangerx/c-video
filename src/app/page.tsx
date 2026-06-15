@@ -67,11 +67,11 @@ const modelOptions = [
     name: "Seedance 2",
     eyebrow: "满血标准",
     price: "¥5",
-    desc: "满血 720P · 多画幅",
+    desc: "满血 · 720P/1080P",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
-    resolutions: ["720P"],
+    resolutions: ["720P", "1080P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
   },
   {
@@ -79,11 +79,11 @@ const modelOptions = [
     name: "Seedance 2.0",
     eyebrow: "快速经济",
     price: "¥2.5",
-    desc: "快速出片 · 720P",
+    desc: "快速出片 · 720P/1080P",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
-    resolutions: ["720P"],
+    resolutions: ["720P", "1080P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
   },
   {
@@ -91,11 +91,11 @@ const modelOptions = [
     name: "Seedance 2 VIP",
     eyebrow: "满血加速",
     price: "¥7",
-    desc: "满血 VIP · 720P",
+    desc: "满血 VIP · 720P/1080P",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
-    resolutions: ["720P"],
+    resolutions: ["720P", "1080P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
   },
   {
@@ -1410,8 +1410,8 @@ export default function Home() {
             <div className="brand-lockup">
               <span className="brand-dot" />
               <div>
-                <strong>C-AI VIDEO</strong>
-                <small>Seedance 720p</small>
+                <strong>Canger CineFlow</strong>
+                <small>苍洱影绘 AI 创作台</small>
               </div>
             </div>
             <button
@@ -1690,7 +1690,7 @@ export default function Home() {
             <div className="footer-brand">
               <span className="footer-mark">C</span>
               <div>
-                <strong>C-AI VIDEO</strong>
+                <strong>Canger CineFlow</strong>
                 <small>© 2026 苍洱 · All rights reserved</small>
               </div>
             </div>

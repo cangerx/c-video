@@ -73,12 +73,10 @@ function resolveOutputSize(model: string, value: FormDataEntryValue | null) {
 }
 
 function assertResolution(model: string, value: FormDataEntryValue | null) {
+  // Both happyhorse-1.0 and seedance-2.* support 720P / 1080P per the API doc.
   const resolution = String(value || "720P").trim().toUpperCase();
-  if (!isHappyHorseModel(model)) {
-    return "720P";
-  }
   if (resolution !== "720P" && resolution !== "1080P") {
-    throw new HttpError("HappyHorse 分辨率仅支持 720P / 1080P。", 400, "invalid_resolution", "invalid_request_error");
+    throw new HttpError("分辨率仅支持 720P / 1080P。", 400, "invalid_resolution", "invalid_request_error");
   }
 
   return resolution;
