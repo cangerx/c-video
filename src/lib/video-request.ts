@@ -208,6 +208,9 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   if (isHappyHorseModel(requestedModel) && seconds !== 15) {
     throw new HttpError("HappyHorse 当前仅支持 15 秒视频。", 400, "invalid_seconds", "invalid_request_error");
   }
+  if (isHappyHorseModel(requestedModel) && files.length > 0 && !isR2Configured()) {
+    throw new HttpError("HappyHorse 模型上传参考图需要配置云存储（R2），请联系管理员。", 400, "storage_not_configured", "invalid_request_error");
+  }
 
   remoteUrls.forEach(assertRemoteUrl);
 

@@ -48,7 +48,7 @@ function getNumberValue(value: unknown) {
 }
 
 function normalizeStatus(value: unknown): VideoStatus {
-  const status = getStringValue(value).toLowerCase();
+  const status = getStringValue(value).toLowerCase().split(":")[0].trim();
   if (["completed", "complete", "success", "succeeded", "finished"].includes(status)) {
     return "completed";
   }
@@ -240,7 +240,8 @@ async function fetchUpstream(context: UpstreamContext, init: RequestInit) {
 
 export async function createVideoTask(apiKey: string, formData: FormData) {
   const context = { operation: "createVideoTask", url: `${getVideoApiBaseUrl()}/v1/videos` };
-  const canSendJson = !hasFormDataFiles(formData);
+  const model = String(formData.get("model") || "");
+  const canSendJson = !hasFormDataFiles(formData) || model === happyHorseModel;
   const jsonPayload = canSendJson ? formDataToJsonPayload(formData) : null;
   maybeLogCreatePayload(formData, jsonPayload);
   const response = await fetchUpstream(context, {
