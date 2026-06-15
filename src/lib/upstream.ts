@@ -154,7 +154,6 @@ function formDataToJsonPayload(formData: FormData) {
     const payload: VideoJsonPayload = {
       model,
       prompt,
-      parameters: { resolution },
       duration: Number.isFinite(seconds) ? seconds : 15,
       metadata: {
         resolution,
