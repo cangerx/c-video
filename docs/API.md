@@ -30,7 +30,7 @@
 | 模型 ID | 名称 | 价格/次 | 时长 | 分辨率 |
 |---------|------|---------|------|--------|
 | `seedance-2` | Seedance 2（满血） | ¥5 | 15s | 720P |
-| `seedance-2.0` | Seedance 2.0（快速） | ¥2.5 | 15s | 720P / 1080P |
+| `seedance-2.0` | Seedance 2.0 Fast（快速） | ¥2.5 | 15s | 720P / 1080P |
 | `seedance-2-vip` | Seedance 2 VIP（满血加速） | ¥7 | 15s | 720P |
 | `happyhorse-1.0` | HappyHorse 1.0 | ¥3.5 | 15s | 720P / 1080P |
 

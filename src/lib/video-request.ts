@@ -81,7 +81,7 @@ function assertResolution(model: string, value: FormDataEntryValue | null) {
     throw new HttpError("分辨率仅支持 720P / 1080P。", 400, "invalid_resolution", "invalid_request_error");
   }
   if (resolution === "1080P" && !hd1080Models.has(model)) {
-    throw new HttpError("当前模型仅支持 720P，1080P 请使用 Seedance 2.0 或 HappyHorse 1.0。", 400, "invalid_resolution", "invalid_request_error");
+    throw new HttpError("当前模型仅支持 720P，1080P 请使用 Seedance 2.0 Fast 或 HappyHorse 1.0。", 400, "invalid_resolution", "invalid_request_error");
   }
 
   return resolution;

@@ -75,7 +75,7 @@ const modelOptions = [
   },
   {
     id: "seedance-2.0",
-    name: "Seedance 2.0",
+    name: "Seedance 2.0 Fast",
     eyebrow: "快速经济",
     price: "¥2.5",
     desc: "快速出片 · 720P/1080P",
@@ -1425,7 +1425,7 @@ export default function Home() {
           {/* Activity Marquee Ticker */}
           <div className="promo-ticker" aria-label="活动公告">
             <div className="ticker-track">
-              <span>Seedance 2.0 · 720p</span>
+              <span>Seedance 2.0 Fast · 1080p</span>
               <span>电影推镜 · 镜运动效</span>
               <span>人物转身 · 动作重塑</span>
               <span>银幕光影 · 电影质感</span>
@@ -1433,7 +1433,7 @@ export default function Home() {
               <span>长任务安全队列 · 稳定回传</span>
               <span>用量本地记账 · 额度一目了然</span>
               <span>Cloudflare R2 存储托管</span>
-              <span>Seedance 2.0 · 720p</span>
+              <span>Seedance 2.0 Fast · 1080p</span>
               <span>电影推镜 · 镜运动效</span>
               <span>人物转身 · 动作重塑</span>
               <span>银幕光影 · 电影质感</span>
