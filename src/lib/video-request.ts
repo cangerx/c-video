@@ -5,6 +5,8 @@ import { uploadReferenceImageToR2 } from "./storage";
 const allowedSeconds = new Set([15]);
 const happyHorseModel = "happyhorse-1.0";
 const seedanceModels = new Set(["seedance-2", "seedance-2.0", "seedance-2-vip"]);
+// Only these models support 1080P; the rest are 720P-only.
+const hd1080Models = new Set(["seedance-2.0", "happyhorse-1.0"]);
 // Legacy ids submitted by older clients / stored tasks, mapped to the standard model.
 const legacySeedanceModels = new Set(["seedance_2", "seedance_2_5s", "seedance_2_10s", "seedance_2_15s"]);
 
@@ -73,10 +75,13 @@ function resolveOutputSize(model: string, value: FormDataEntryValue | null) {
 }
 
 function assertResolution(model: string, value: FormDataEntryValue | null) {
-  // Both happyhorse-1.0 and seedance-2.* support 720P / 1080P per the API doc.
+  // Only seedance-2.0 / happyhorse-1.0 support 1080P; other models are 720P-only.
   const resolution = String(value || "720P").trim().toUpperCase();
   if (resolution !== "720P" && resolution !== "1080P") {
     throw new HttpError("分辨率仅支持 720P / 1080P。", 400, "invalid_resolution", "invalid_request_error");
+  }
+  if (resolution === "1080P" && !hd1080Models.has(model)) {
+    throw new HttpError("当前模型仅支持 720P，1080P 请使用 Seedance 2.0 或 HappyHorse 1.0。", 400, "invalid_resolution", "invalid_request_error");
   }
 
   return resolution;

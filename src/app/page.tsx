@@ -66,11 +66,11 @@ const modelOptions = [
     name: "Seedance 2",
     eyebrow: "满血标准",
     price: "¥5",
-    desc: "满血 · 720P/1080P",
+    desc: "满血 · 720P",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
-    resolutions: ["720P", "1080P"],
+    resolutions: ["720P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   },
   {
@@ -90,11 +90,11 @@ const modelOptions = [
     name: "Seedance 2 VIP",
     eyebrow: "满血加速",
     price: "¥7",
-    desc: "满血 VIP · 720P/1080P",
+    desc: "满血 VIP · 720P",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
-    resolutions: ["720P", "1080P"],
+    resolutions: ["720P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   },
   {
