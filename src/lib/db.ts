@@ -322,3 +322,15 @@ export function getDatabaseHealth() {
   const row = getDb().prepare("SELECT 1 AS ok").get() as { ok: number };
   return { ok: row.ok === 1 };
 }
+
+export function markTaskAsFailed(userHash: string, upstreamTaskId: string, errorMessage: string) {
+  return getDb()
+    .prepare(`
+      UPDATE video_tasks
+      SET status = 'failed',
+          error_message = ?,
+          updated_at = datetime('now')
+      WHERE user_hash = ? AND upstream_task_id = ?
+    `)
+    .run(errorMessage, userHash, upstreamTaskId);
+}

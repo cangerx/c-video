@@ -3,6 +3,7 @@ import { HttpError, jsonError } from "@/lib/errors";
 import { getUsageSummary, listStoredTasks, recordUsageEvent, upsertVideoTask } from "@/lib/db";
 import { createVideoTask } from "@/lib/upstream";
 import { prepareVideoFormData } from "@/lib/video-request";
+import { isR2Configured } from "@/lib/config";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,12 @@ export async function GET(request: Request) {
     const limit = Number(searchParams.get("limit") || 30);
     const userHash = createUserHash(apiKey);
 
-    return Response.json({ object: "list", data: listStoredTasks(userHash, limit), usage: getUsageSummary(userHash) });
+    return Response.json({
+      object: "list",
+      data: listStoredTasks(userHash, limit),
+      usage: getUsageSummary(userHash),
+      r2Configured: isR2Configured()
+    });
   } catch (error) {
     return jsonError(error);
   }
@@ -42,9 +48,9 @@ export async function POST(request: Request) {
     const userHash = createUserHash(apiKey);
     const prepared = await prepareVideoFormData(formData, userHash);
     const storedPrompt = String(prepared.formData.get("prompt") || prepared.formData.get("input") || prompt).trim();
-    const storedSeconds = String(prepared.formData.get("seconds") || prepared.formData.get("duration") || "5");
+    const storedSeconds = String(prepared.formData.get("seconds") || prepared.formData.get("duration") || "15");
     const storedSize = String(prepared.formData.get("size") || "1280x720");
-    const storedModel = String(prepared.formData.get("model") || "seedance_2");
+    const storedModel = String(prepared.formData.get("model") || "seedance-2");
     const task = await createVideoTask(apiKey, prepared.formData);
     const storedTask = upsertVideoTask(userHash, task, {
       mediaUrls: prepared.mediaUrls,

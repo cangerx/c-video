@@ -8,7 +8,7 @@ type UpstreamContext = {
 };
 
 type VideoJsonPayload = Record<string, unknown> & {
-  references?: Array<{ name: string; url: string }>;
+  input_reference?: string | string[];
 };
 
 const happyHorseModel = "happyhorse-1.0";
@@ -101,6 +101,19 @@ function normalizeVideoTask(body: unknown, fallbackId = ""): UpstreamVideoTask {
     throw new HttpError("上游没有返回任务 ID，请稍后重试。", 502, "missing_upstream_task_id", "upstream_error");
   }
 
+  // The completed-task response documents the video URL across several fields:
+  // top-level `url` / `video_url`, plus metadata.{url,content_url,local_url}.
+  const videoUrl =
+    getStringValue(
+      payload.video_url,
+      body.video_url,
+      payload.url,
+      body.url,
+      metadata.content_url,
+      metadata.url,
+      metadata.local_url
+    ) || null;
+
   return {
     id,
     object: getStringValue(payload.object, body.object) || "video",
@@ -112,7 +125,7 @@ function normalizeVideoTask(body: unknown, fallbackId = ""): UpstreamVideoTask {
     size: getStringValue(payload.size),
     status: normalizeStatus(payload.status ?? body.status),
     progress: getNumberValue(payload.progress ?? body.progress),
-    video_url: getStringValue(payload.video_url, body.video_url) || null,
+    video_url: videoUrl,
     thumbnail_url: getStringValue(payload.thumbnail_url, body.thumbnail_url) || null,
     error,
     metadata: isRecord(metadata) ? metadata : null
@@ -143,6 +156,8 @@ function sizeToRatio(size: string) {
 }
 
 function formDataToJsonPayload(formData: FormData) {
+  // Both seedance-2.0 and happyhorse-1.0 share the same documented JSON body:
+  // POST /v1/videos with { model, prompt, duration, input_reference?, metadata }.
   const model = String(formData.get("model") || "");
   const prompt = String(formData.get("prompt") || formData.get("input") || "");
   const seconds = Number(formData.get("seconds") || formData.get("duration") || 15);
@@ -150,45 +165,22 @@ function formDataToJsonPayload(formData: FormData) {
   const resolution = String(formData.get("resolution") || "720P").toUpperCase() === "1080P" ? "1080P" : "720P";
   const mediaUrls = formData.getAll("media_urls").map(String).filter(Boolean);
 
-  if (model === happyHorseModel) {
-    const payload: VideoJsonPayload = {
-      model,
-      prompt,
-      duration: Number.isFinite(seconds) ? seconds : 15,
-      metadata: {
-        resolution,
-        ratio: sizeToRatio(size),
-        prompt_extend: false,
-        watermark: false
-      }
-    };
-
-    if (mediaUrls.length === 1) {
-      payload.input_reference = mediaUrls[0];
-    } else if (mediaUrls.length > 1) {
-      payload.input_reference = mediaUrls;
-    }
-
-    return payload;
-  }
-
   const payload: VideoJsonPayload = {
     model,
-    prompt
+    prompt,
+    duration: Number.isFinite(seconds) ? seconds : 15,
+    metadata: {
+      resolution,
+      ratio: sizeToRatio(size),
+      prompt_extend: false,
+      watermark: false
+    }
   };
 
-  for (const [key, value] of formData.entries()) {
-    if (key === "media_urls" || key === "resolution") {
-      continue;
-    }
-    payload[key] = String(value);
-  }
-
-  if (mediaUrls.length) {
-    payload.references = mediaUrls.map((url, index) => ({
-      name: `IMG_${index + 1}`,
-      url
-    }));
+  if (mediaUrls.length === 1) {
+    payload.input_reference = mediaUrls[0];
+  } else if (mediaUrls.length > 1) {
+    payload.input_reference = mediaUrls;
   }
 
   return payload;
@@ -199,7 +191,12 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
     return;
   }
 
-  const mediaUrls = payload?.references?.map((item) => item.url).filter(Boolean) || formData.getAll("media_urls").map(String).filter(Boolean);
+  const inputReference = payload?.input_reference;
+  const mediaUrls = Array.isArray(inputReference)
+    ? inputReference
+    : typeof inputReference === "string" && inputReference
+      ? [inputReference]
+      : formData.getAll("media_urls").map(String).filter(Boolean);
   console.info("[video-upstream] create payload", {
     mode: payload ? "json" : "multipart",
     model: String(formData.get("model") || ""),
@@ -209,7 +206,6 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
     size: String(formData.get("size") || ""),
     mediaUrlCount: mediaUrls.length,
     mediaUrls,
-    references: payload?.references || [],
     fileCount: Array.from(formData.values()).filter((value) => value instanceof File).length
   });
 }

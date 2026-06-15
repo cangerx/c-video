@@ -2,9 +2,11 @@ import { getUploadLimits, isR2Configured } from "./config";
 import { HttpError } from "./errors";
 import { uploadReferenceImageToR2 } from "./storage";
 
-const allowedSeconds = new Set([5, 10, 15]);
+const allowedSeconds = new Set([15]);
 const happyHorseModel = "happyhorse-1.0";
-const seedanceModels = new Set(["seedance_2", "seedance_2_5s", "seedance_2_10s", "seedance_2_15s"]);
+const seedanceModels = new Set(["seedance-2", "seedance-2.0", "seedance-2-vip"]);
+// Legacy ids submitted by older clients / stored tasks, mapped to the standard model.
+const legacySeedanceModels = new Set(["seedance_2", "seedance_2_5s", "seedance_2_10s", "seedance_2_15s"]);
 
 function getFormFiles(formData: FormData) {
   return [...formData.getAll("media[]"), ...formData.getAll("media")].filter((item): item is File => item instanceof File);
@@ -30,30 +32,31 @@ function assertRemoteUrl(value: string) {
 }
 
 function assertSeconds(value: FormDataEntryValue | null) {
-  const seconds = Number(value || 5);
+  const seconds = Number(value || 15);
   if (!Number.isInteger(seconds) || !allowedSeconds.has(seconds)) {
-    throw new HttpError("视频时长仅支持 5 / 10 / 15 秒。", 400, "invalid_seconds", "invalid_request_error");
+    throw new HttpError("视频时长仅支持 15 秒。", 400, "invalid_seconds", "invalid_request_error");
   }
 
   return seconds;
 }
 
-function resolveVideoModel(seconds: number) {
-  switch (seconds) {
-    case 5:
-      return "seedance_2_5s";
-    case 10:
-      return "seedance_2_10s";
-    case 15:
-      return "seedance_2_15s";
-    default:
-      throw new HttpError("当前时长暂不支持，请选择 5 / 10 / 15 秒。", 400, "invalid_seconds", "invalid_request_error");
+function normalizeRequestedModel(model: string) {
+  if (model === happyHorseModel) {
+    return happyHorseModel;
   }
+  if (seedanceModels.has(model)) {
+    return model;
+  }
+  if (legacySeedanceModels.has(model)) {
+    return "seedance-2";
+  }
+
+  return "";
 }
 
 function getRequestedModel(formData: FormData) {
   const model = String(formData.get("model") || "").trim();
-  return model || "seedance_2";
+  return model || "seedance-2";
 }
 
 function isHappyHorseModel(model: string) {
@@ -194,16 +197,16 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   const remoteUrls = getRemoteUrls(formData);
   const totalReferences = files.length + remoteUrls.length;
 
-  const requestedModel = getRequestedModel(formData);
+  const requestedModel = normalizeRequestedModel(getRequestedModel(formData));
+  if (!requestedModel) {
+    throw new HttpError("当前模型暂不支持。", 400, "invalid_model", "invalid_request_error");
+  }
   const seconds = assertSeconds(formData.get("seconds") || formData.get("duration"));
   const size = resolveOutputSize(requestedModel, formData.get("size"));
   const resolution = assertResolution(requestedModel, formData.get("resolution"));
 
   if (totalReferences > limits.maxFiles) {
     throw new HttpError(`最多上传 ${limits.maxFiles} 张参考图。`, 400, "too_many_files", "invalid_request_error");
-  }
-  if (!isHappyHorseModel(requestedModel) && !seedanceModels.has(requestedModel)) {
-    throw new HttpError("当前模型暂不支持。", 400, "invalid_model", "invalid_request_error");
   }
   if (isHappyHorseModel(requestedModel) && seconds !== 15) {
     throw new HttpError("HappyHorse 当前仅支持 15 秒视频。", 400, "invalid_seconds", "invalid_request_error");
@@ -232,7 +235,7 @@ export async function prepareVideoFormData(formData: FormData, userHash: string)
   nextFormData.set("seconds", String(seconds));
   nextFormData.set("size", size);
   nextFormData.set("resolution", resolution);
-  nextFormData.set("model", isHappyHorseModel(requestedModel) ? happyHorseModel : resolveVideoModel(seconds));
+  nextFormData.set("model", requestedModel);
 
   const uploadedUrls: string[] = [];
   if (isR2Configured()) {

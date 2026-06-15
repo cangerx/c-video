@@ -14,6 +14,7 @@ type ListResponse = {
   object: "list";
   data: StoredVideoTask[];
   usage?: UsageSummary;
+  r2Configured?: boolean;
 };
 
 type TaskResponse = {
@@ -62,12 +63,38 @@ const aspectOptions = [
 const batchOptions = [1, 3, 5];
 const modelOptions = [
   {
-    id: "seedance_2",
-    name: "Seedance 2.0",
-    eyebrow: "参考图创作",
+    id: "seedance-2",
+    name: "Seedance 2",
+    eyebrow: "满血标准",
+    price: "¥5",
+    desc: "满血 720P · 多画幅",
     defaultSeconds: "15",
     defaultResolution: "720P",
-    seconds: ["5", "10", "15"],
+    seconds: ["15"],
+    resolutions: ["720P"],
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+  },
+  {
+    id: "seedance-2.0",
+    name: "Seedance 2.0",
+    eyebrow: "快速经济",
+    price: "¥2.5",
+    desc: "快速出片 · 720P",
+    defaultSeconds: "15",
+    defaultResolution: "720P",
+    seconds: ["15"],
+    resolutions: ["720P"],
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+  },
+  {
+    id: "seedance-2-vip",
+    name: "Seedance 2 VIP",
+    eyebrow: "满血加速",
+    price: "¥7",
+    desc: "满血 VIP · 720P",
+    defaultSeconds: "15",
+    defaultResolution: "720P",
+    seconds: ["15"],
     resolutions: ["720P"],
     ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
   },
@@ -75,6 +102,8 @@ const modelOptions = [
     id: "happyhorse-1.0",
     name: "HappyHorse 1.0",
     eyebrow: "长镜头优先",
+    price: "¥3.5",
+    desc: "1080P/720P · 15s",
     defaultSeconds: "15",
     defaultResolution: "720P",
     seconds: ["15"],
@@ -96,6 +125,86 @@ const statusText: Record<VideoStatus, string> = {
 };
 
 const runningSteps = ["提交任务", "排队调度", "渲染镜头", "合成视频", "等待回传"];
+
+function CloseIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", marginRight: "4px" }}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", marginRight: "4px" }}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", marginRight: "4px" }}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
 
 function getFocusableElements(container: HTMLElement | null) {
   if (!container) {
@@ -263,11 +372,16 @@ function getModelOption(modelId: string | null | undefined) {
   if (!modelId) {
     return modelOptions[0];
   }
-  if (modelId.startsWith("seedance_2")) {
+  const exact = modelOptions.find((option) => option.id === modelId);
+  if (exact) {
+    return exact;
+  }
+  // Legacy stored names: seedance_2 / seedance_2_5s / seedance_2_10s / seedance_2_15s
+  if (modelId.startsWith("seedance_2") || modelId.startsWith("seedance-2")) {
     return modelOptions[0];
   }
 
-  return modelOptions.find((option) => option.id === modelId) || modelOptions[0];
+  return modelOptions[0];
 }
 
 function getModelName(modelId: string | null | undefined) {
@@ -301,6 +415,7 @@ function sendTaskNotification(task: StoredVideoTask) {
 }
 
 export default function Home() {
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [prompt, setPrompt] = useState("");
@@ -373,6 +488,18 @@ export default function Home() {
     const candidates = [activeTask, ...tasks].filter(Boolean) as StoredVideoTask[];
     return candidates.find((task) => task.upstreamTaskId === detailTaskId) || null;
   }, [activeTask, detailTaskId, tasks]);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     const nextPreviewUrls = files.map((file) => URL.createObjectURL(file));
@@ -509,6 +636,9 @@ export default function Home() {
       }
       setTasks(body.data);
       setUsageSummary(body.usage || null);
+      if (typeof body.r2Configured === "boolean") {
+        setLastStorageMode(body.r2Configured ? "r2" : "direct");
+      }
       setActiveTask((current) =>
         current && body.data.some((task) => task.upstreamTaskId === current.upstreamTaskId)
           ? current
@@ -609,15 +739,42 @@ export default function Home() {
 
     let stopped = false;
     let timeout: number | undefined;
+    let consecutiveErrors = 0;
 
     const poll = async () => {
       try {
         const nextTask = await refreshTask(activeTask.upstreamTaskId);
         if (nextTask) {
           setError("");
+          consecutiveErrors = 0;
         }
       } catch (err) {
-        setNotice(`状态同步暂时失败，已自动重试：${getErrorMessage(err)}`);
+        consecutiveErrors += 1;
+        const errMsg = getErrorMessage(err);
+        const isPermanent = errMsg.includes("404") || errMsg.includes("不存在") || errMsg.toLowerCase().includes("unrecognized") || errMsg.includes("格式异常");
+        
+        if (isPermanent || consecutiveErrors >= 5) {
+          stopped = true;
+          setError(`同步终止：${errMsg}。该任务已结束、不存在或查询持续出错。`);
+          setActiveTask(current => {
+            if (!current) return null;
+            return {
+              ...current,
+              status: "failed",
+              errorMessage: errMsg
+            };
+          });
+          setTasks(current => {
+            return current.map(t => {
+              if (t.upstreamTaskId === activeTask.upstreamTaskId) {
+                return { ...t, status: "failed", errorMessage: errMsg };
+              }
+              return t;
+            });
+          });
+          return;
+        }
+        setNotice(`状态同步暂时失败（第 ${consecutiveErrors}/5 次重试）：${errMsg}`);
       } finally {
         if (!stopped) {
           timeout = window.setTimeout(poll, activeTaskPollIntervalMs);
@@ -791,25 +948,55 @@ export default function Home() {
     void addFiles(pastedImages);
   }
 
-  function selectAspect(nextAspect: string) {
-    const option = aspectOptions.find((item) => item.label === nextAspect);
-    setAspect(nextAspect);
-    if (option) {
-      setSize(option.size);
+  function getSizeByAspectAndResolution(asp: string, res: string) {
+    if (res === "1080P") {
+      switch (asp) {
+        case "16:9": return "1920x1080";
+        case "9:16": return "1080x1920";
+        case "1:1": return "1080x1080";
+        case "4:3": return "1440x1080";
+        case "3:4": return "1080x1440";
+        case "21:9": return "1920x822";
+        default: return "1920x1080";
+      }
+    } else {
+      switch (asp) {
+        case "16:9": return "1280x720";
+        case "9:16": return "720x1280";
+        case "1:1": return "1024x1024";
+        case "4:3": return "1024x768";
+        case "3:4": return "768x1024";
+        case "21:9": return "1280x548";
+        default: return "1280x720";
+      }
     }
+  }
+
+  function selectAspect(nextAspect: string) {
+    setAspect(nextAspect);
+    setSize(getSizeByAspectAndResolution(nextAspect, resolution));
     setShowRatioPanel(false);
+  }
+
+  function changeResolution(nextResolution: string) {
+    setResolution(nextResolution);
+    setSize(getSizeByAspectAndResolution(aspect, nextResolution));
   }
 
   function selectModel(modelId: string) {
     const nextModel = getModelOption(modelId);
     setSelectedModel(nextModel.id);
     setSeconds(nextModel.defaultSeconds);
-    setResolution(nextModel.defaultResolution);
+    const nextRes = nextModel.resolutions.includes(resolution)
+      ? resolution
+      : nextModel.defaultResolution;
+    setResolution(nextRes);
+    let nextAspect = aspect;
     if (!nextModel.ratios.includes(aspect)) {
-      const fallbackAspect = aspectOptions.find((option) => option.label === "16:9");
+      nextAspect = "16:9";
       setAspect("16:9");
-      setSize(fallbackAspect?.size || "1280x720");
     }
+    setSize(getSizeByAspectAndResolution(nextAspect, nextRes));
   }
 
   function handleLogin() {
@@ -917,6 +1104,7 @@ export default function Home() {
     if (task.size) {
       setSize(task.size);
       setAspect(getAspectBySize(task.size));
+      setResolution(task.size.includes("1920") || task.size.includes("1440") ? "1080P" : "720P");
     }
     setFiles([]);
     setMediaUrls(task.mediaUrls.join("\n"));
@@ -943,6 +1131,7 @@ export default function Home() {
         if (freshTask.size) {
           setSize(freshTask.size);
           setAspect(getAspectBySize(freshTask.size));
+          setResolution(freshTask.size.includes("1920") || freshTask.size.includes("1440") ? "1080P" : "720P");
         }
         if (freshTask.mediaUrls.length) {
           setMediaUrls(freshTask.mediaUrls.join("\n"));
@@ -1212,418 +1401,485 @@ export default function Home() {
   }
 
   return (
-    <main className="app-shell">
-      <section className="app-main">
-        <div className="promo-ticker" aria-label="活动公告">
-          <div className="ticker-track">
-            <span>Seedance 2.0 · 720p</span>
-            <span>电影推镜 · 人物转身 · 产品展示</span>
-            <span>银幕光影 · 精准调度</span>
-            <span>灵感成片 · 长线渲染</span>
-            <span>Seedance 2.0 · 720p</span>
-            <span>电影推镜 · 人物转身 · 产品展示</span>
-            <span>银幕光影 · 精准调度</span>
-            <span>灵感成片 · 长线渲染</span>
-          </div>
-        </div>
-
-        <header className="topbar compact">
-          <div className="brand-lockup">
-            <span className="brand-dot" />
-            <div>
-              <strong>C-AI</strong>
-              <small>Seedance 720p</small>
-            </div>
-          </div>
-          {apiKey ? (
-            <div className="topbar-actions">
-              <div className="usage-pill" aria-label="最近 30 天用量">
-                <span>30 天用量</span>
-                <strong>{usageSummary?.totalCostUnits ?? 0}</strong>
-                <small>次</small>
-              </div>
-              <div className="session-pill">
-                <span>已登录</span>
-                <strong>{apiKey.slice(0, 4)}••••{apiKey.slice(-4)}</strong>
-                <button type="button" onClick={() => {
-                  setShowHistory(true);
-                  void loadHistory();
-                }}>
-                  历史
-                </button>
-                <button type="button" onClick={handleLogout}>退出</button>
+    <main className="app-shell" onPaste={handlePaste}>
+      <div className="app-main">
+        {/* LEFT SIDEBAR: Control Panel */}
+        <aside className="left-sidebar">
+          {/* Logo Brand Lockup */}
+          <div className="brand-header">
+            <div className="brand-lockup">
+              <span className="brand-dot" />
+              <div>
+                <strong>C-AI VIDEO</strong>
+                <small>Seedance 720p</small>
               </div>
             </div>
-          ) : (
-            <button className="login-trigger" type="button" onClick={() => setShowLogin(true)}>
-              登录密钥
-            </button>
-          )}
-        </header>
-
-        <form className="creation-card" onPaste={handlePaste} onSubmit={handleSubmit}>
-          <div className="mode-tabs">
-            <button className="selected" type="button">视频创作</button>
-          </div>
-          <div className="form-head">
-            <div>
-              <span>Prompt</span>
-              <strong id="prompt-label">镜头指令</strong>
-            </div>
-            <small>{prompt.length}/3500</small>
-          </div>
-
-          <textarea
-            className="prompt-box"
-            aria-labelledby="prompt-label"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="雨夜霓虹，@IMG_1 转身入镜，手持浅景深。"
-            maxLength={3500}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              void addFiles(event.dataTransfer.files);
-            }}
-          />
-
-          <div className="asset-row">
             <button
-              className={`asset-tile ${isUploadingReferences ? "uploading" : ""}`}
+              className="theme-toggle-btn"
               type="button"
-              disabled={isUploadingReferences}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+              title={theme === "dark" ? "切换到白昼模式" : "切换到暗黑模式"}
+              aria-label="切换主题"
             >
-              <b>{isUploadingReferences ? "↥" : "+"}</b>
-              <span>{isUploadingReferences ? "上传中" : "参考素材"}</span>
-              <small>{referenceCount}/{maxUploadFiles}</small>
+              {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             </button>
-            <p>
-              @IMG_1 · @IMG_2 · @IMG_3<br />
-              单张 ≤ {maxUploadFileSizeMb}MB，登录后粘贴/拖拽会先上传 R2。
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(event) => event.target.files && void addFiles(event.target.files)}
-            />
           </div>
 
-          {isUploadingReferences ? (
-            <div className="upload-status" role="status" aria-live="polite">
-              <span />
-              <strong>正在上传参考图到 R2</strong>
-              <small>成功后会自动写入下方远程 URL，不会重复上传。</small>
+          {/* Activity Marquee Ticker */}
+          <div className="promo-ticker" aria-label="活动公告">
+            <div className="ticker-track">
+              <span>Seedance 2.0 · 720p</span>
+              <span>电影推镜 · 镜运动效</span>
+              <span>人物转身 · 动作重塑</span>
+              <span>银幕光影 · 电影质感</span>
+              <span>多画幅比例 · 创意无限</span>
+              <span>长任务安全队列 · 稳定回传</span>
+              <span>用量本地记账 · 额度一目了然</span>
+              <span>Cloudflare R2 存储托管</span>
+              <span>Seedance 2.0 · 720p</span>
+              <span>电影推镜 · 镜运动效</span>
+              <span>人物转身 · 动作重塑</span>
+              <span>银幕光影 · 电影质感</span>
+              <span>多画幅比例 · 创意无限</span>
+              <span>长任务安全队列 · 稳定回传</span>
+              <span>用量本地记账 · 额度一目了然</span>
+              <span>Cloudflare R2 存储托管</span>
             </div>
-          ) : null}
+          </div>
 
-          {files.length ? (
-            <div className="reference-strip">
-              {files.map((file, index) => (
-                <div className="reference-chip" key={`${file.name}-${file.lastModified}-${index}`}>
-                  <img src={previewUrls[index]} alt={file.name} />
-                  <span>@IMG_{remoteMediaUrlList.length + index + 1}</span>
-                  <button
-                    aria-label={`移除参考素材 ${remoteMediaUrlList.length + index + 1}`}
-                    type="button"
-                    onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
-                  >
-                    ×
-                  </button>
+          {/* Authentication & Account Stats */}
+          <div className="auth-section">
+            {apiKey ? (
+              <>
+                <div className="usage-pill" aria-label="最近 30 天用量">
+                  <span>30 天用量</span>
+                  <strong>{usageSummary?.totalCostUnits ?? 0} <small>次</small></strong>
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <div className="session-pill">
+                  <span>密钥: <strong>{apiKey.slice(0, 4)}••••{apiKey.slice(-4)}</strong></span>
+                  <button type="button" onClick={() => {
+                    setShowHistory(true);
+                    void loadHistory();
+                  }}>
+                    历史
+                  </button>
+                  <button type="button" onClick={handleLogout}>退出</button>
+                </div>
+              </>
+            ) : (
+              <button className="login-trigger" type="button" onClick={() => setShowLogin(true)}>
+                登录密钥
+              </button>
+            )}
+          </div>
 
-          <div className="url-row">
+          {/* Creation Form */}
+          <form className="creation-form" onSubmit={handleSubmit}>
+            <div className="form-head">
+              <div className="form-title-wrap">
+                <span className="form-badge">Prompt</span>
+                <strong>镜头指令</strong>
+              </div>
+              <small>{prompt.length}/3500</small>
+            </div>
+
             <textarea
-              aria-label="远程参考图 URL"
-              value={mediaUrls}
-              onChange={(event) => setMediaUrls(event.target.value)}
-              placeholder="远程参考图 URL，多个用换行或逗号分隔"
-              rows={3}
+              className="prompt-box"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="雨夜霓虹，@IMG_1 转身入镜，手持浅景深。"
+              maxLength={3500}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                void addFiles(event.dataTransfer.files);
+              }}
             />
-            <p className={`storage-note ${lastStorageMode || ""}`}>
-              {lastStorageMode === "r2"
-                ? "本地图片已转存云存储，长任务期间更稳定。"
-                : lastStorageMode === "direct"
-                  ? "当前为直传模式，生产环境建议配置 R2。"
-                  : "视频不落盘保存，只使用上游返回的视频 URL 预览。"}
-            </p>
-            {lastUploadedUrls.length ? (
-              <div className="uploaded-url-panel">
-                <div className="uploaded-url-head">
-                  <span>R2 参考图地址</span>
-                  <div>
-                    <button type="button" onClick={() => void copyText(lastUploadedUrls.join("\n"), "参考地址")}>
+
+            {/* Reference Upload */}
+            <div className="asset-row"
+                 onDragOver={(event) => event.preventDefault()}
+                 onDrop={(event) => {
+                   event.preventDefault();
+                   void addFiles(event.dataTransfer.files);
+                 }}>
+              <button
+                className={`asset-tile ${isUploadingReferences ? "uploading" : ""}`}
+                type="button"
+                disabled={isUploadingReferences}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <b>{isUploadingReferences ? <UploadIcon /> : <PlusIcon />}</b>
+                <span>参考素材</span>
+                <small>{referenceCount}/{maxUploadFiles}</small>
+              </button>
+              <p>
+                单张 ≤ {maxUploadFileSizeMb}MB，本地粘贴/拖拽会自动上传云端 R2。在指令中输入 @IMG_1 引用图片。
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => event.target.files && void addFiles(event.target.files)}
+              />
+            </div>
+
+            {isUploadingReferences && (
+              <div className="upload-status" role="status" aria-live="polite">
+                <span />
+                <strong>正在上传参考图到 R2...</strong>
+              </div>
+            )}
+
+            {files.length > 0 && (
+              <div className="reference-strip">
+                {files.map((file, index) => (
+                  <div className="reference-chip" key={`${file.name}-${file.lastModified}-${index}`}>
+                    <img src={previewUrls[index]} alt={file.name} />
+                    <span>@IMG_{remoteMediaUrlList.length + index + 1}</span>
+                    <button
+                      aria-label={`移除参考素材 ${remoteMediaUrlList.length + index + 1}`}
+                      type="button"
+                      onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                    >
+                      <CloseIcon />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Reference URLs Area */}
+            <div className="url-row">
+              <textarea
+                aria-label="远程参考图 URL"
+                value={mediaUrls}
+                onChange={(event) => setMediaUrls(event.target.value)}
+                placeholder="外部参考图 URL，多个换行/逗号分隔"
+                rows={2}
+              />
+              <p className={`storage-note ${lastStorageMode || ""}`}>
+                {lastStorageMode === "r2" ? (
+                  <>
+                    <CheckIcon />
+                    云存储模式已启用：长任务参考图稳定
+                  </>
+                ) : lastStorageMode === "direct" ? (
+                  <>
+                    <AlertIcon />
+                    直传模式已启用：生产环境建议配置 R2
+                  </>
+                ) : (
+                  <>
+                    <InfoIcon />
+                    暂存模式：本地预览，长周期轮询可能受阻
+                  </>
+                )}
+              </p>
+
+              {lastUploadedUrls.length > 0 && (
+                <div className="uploaded-url-panel">
+                  <div className="uploaded-url-head">
+                    <span>云端参考图链接</span>
+                    <button type="button" onClick={() => void copyText(lastUploadedUrls.join("\n"), "链接")}>
                       复制全部
                     </button>
-                    <button type="button" onClick={fillRemoteUrlsFromLastUpload}>
-                      填入 URL
-                    </button>
                   </div>
-                </div>
-                <div className="uploaded-url-list">
-                  {lastUploadedUrls.map((url, index) => (
-                    <button
-                      key={`${url}-${index}`}
-                      type="button"
-                      onClick={() => void copyText(url, getReferenceLabelForUrl(url, index))}
-                    >
-                      <span>{getReferenceLabelForUrl(url, index)}</span>
-                      <strong>{url}</strong>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="control-row">
-            <div className="ratio-wrap">
-              <button
-                aria-controls="ratio-panel"
-                aria-expanded={showRatioPanel}
-                className="control-pill ratio-pill"
-                type="button"
-                onClick={() => setShowRatioPanel((value) => !value)}
-              >
-                {currentModel.name} <i /> {resolution} <i /> {aspect} <i /> {seconds} 秒
-              </button>
-              {showRatioPanel ? (
-                <div className="ratio-popover" id="ratio-panel" role="group" aria-label="画面规格">
-                  <div className="ratio-panel-head">
-                    <div>
-                      <strong>生成规格</strong>
-                      <span>选择模型、画幅和时长</span>
-                    </div>
-                    <button type="button" onClick={() => setShowRatioPanel(false)} aria-label="关闭画面规格面板">
-                      ×
-                    </button>
-                  </div>
-                  <p>模型</p>
-                  <div className="model-grid">
-                    {modelOptions.map((model) => (
+                  <div className="uploaded-url-list">
+                    {lastUploadedUrls.map((url, index) => (
                       <button
-                        aria-pressed={selectedModel === model.id}
-                        className={selectedModel === model.id ? "selected" : ""}
-                        key={model.id}
+                        key={`${url}-${index}`}
                         type="button"
-                        onClick={() => selectModel(model.id)}
+                        onClick={() => void copyText(url, getReferenceLabelForUrl(url, index))}
                       >
-                        <span>{model.eyebrow}</span>
-                        <strong>{model.name}</strong>
-                        <small>{model.id === "happyhorse-1.0" ? "15 秒 · 720P / 1080P" : "多画幅 · 720P"}</small>
+                        <span>{getReferenceLabelForUrl(url, index)}</span>
+                        <strong>{url}</strong>
                       </button>
                     ))}
                   </div>
-                  <p>分辨率</p>
-                  <div className="resolution-grid">
-                    {availableResolutionOptions.map((option) => (
-                      <button
-                        className={resolution === option ? "selected" : ""}
-                        aria-pressed={resolution === option}
-                        key={option}
-                        type="button"
-                        onClick={() => setResolution(option)}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                  <p>画幅比例</p>
-                  <div className="aspect-grid">
-                    {availableAspectOptions.map((option) => (
-                      <button
-                        className={aspect === option.label ? "selected" : ""}
-                        aria-pressed={aspect === option.label}
-                        key={option.label}
-                        type="button"
-                        onClick={() => selectAspect(option.label)}
-                      >
-                        <span className="aspect-preview" data-aspect={option.label} />
-                        <strong>{option.label}</strong>
-                        <small>{option.name} · {option.hint}</small>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="duration-head">
-                    <p>视频时长</p>
-                    <strong>{seconds} 秒</strong>
-                  </div>
-                  <div className="duration-grid">
-                    {availableSecondOptions.map((option) => (
-                      <button
-                        className={seconds === option ? "selected" : ""}
-                        aria-pressed={seconds === option}
-                        key={option}
-                        type="button"
-                        onClick={() => setSeconds(option)}
-                      >
-                        {option}s
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="batch-picker" aria-label="批量生成数量">
-              {batchOptions.map((option) => (
-                <button
-                  aria-pressed={batchCount === option}
-                  className={batchCount === option ? "selected" : ""}
-                  key={option}
-                  type="button"
-                  onClick={() => setBatchCount(option)}
-                >
-                  {option} 条
-                </button>
-              ))}
-            </div>
-
-            <button className="send-button" type="submit" disabled={isSubmitting || isUploadingReferences}>
-              {isUploadingReferences ? "上传中" : isSubmitting ? "排队中" : batchCount > 1 ? `提交 ${batchCount} 条` : "立即生成"}
-            </button>
-          </div>
-        </form>
-
-        {activeTask ? (
-        <section className="generation-panel">
-          <section className="preview-dock">
-            <div className="dock-head">
-              <div>
-                <span>生成进程</span>
-                <strong>{statusText[activeTask.status]}</strong>
-              </div>
-              <span className={`status ${activeTask.status}`}>{statusText[activeTask.status]}</span>
-            </div>
-            <div className="video-stage">
-              {activeTask?.videoUrl && activeTask.status === "completed" ? (
-                <video src={activeTask.videoUrl} controls playsInline poster={activeTask.thumbnailUrl || undefined} />
-              ) : (
-                <div className={`stage-placeholder ${isRunning(activeTask.status) ? "running" : ""}`}>
-                  {isRunning(activeTask.status) ? (
-                    <div className="render-suite">
-                    <div className="render-animation">
-                      <div className="film-frame">
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                      <div className="render-beam" />
-                      <div className="spark-field">
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                      </div>
-                    </div>
-                    <div className="render-meta">
-                      <div>
-                        <span>已等待</span>
-                        <strong>{elapsedTime}</strong>
-                      </div>
-                      <div>
-                        <span>渲染窗口</span>
-                        <strong>15-60 分钟</strong>
-                      </div>
-                      <div>
-                        <span>状态同步</span>
-                        <strong>在线</strong>
-                      </div>
-                    </div>
-                    <div className="render-steps">
-                      {runningSteps.map((step, index) => (
-                        <span className={index <= activeStepIndex ? "active" : ""} key={step}>
-                          {step}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  ) : (
-                    <div className={`terminal-state ${activeTask.status}`}>
-                      <span>{statusText[activeTask.status]}</span>
-                    </div>
-                  )}
-                  <strong>{getTaskHeadline(activeTask)}</strong>
-                  <span>
-                    {getTaskDescription(activeTask, size, seconds)}
-                  </span>
-                  {isActiveTaskDelayed ? (
-                    <p className="task-error">当前处于高峰期，资源较紧张。任务已进入长时等待队列，请耐心等待，系统仍会持续查询最新状态。</p>
-                  ) : null}
                 </div>
               )}
             </div>
-            {activeTask ? (
-              <div className="task-metrics" aria-label="当前任务摘要">
-                <span>ID {activeTask.upstreamTaskId.slice(0, 8)}</span>
-                <span>{activeTask.size || size}</span>
-                <span>{activeTask.seconds || seconds}s</span>
-                <span>用量 {getTaskCostUnits(activeTask, seconds)} 次</span>
+
+            {/* Direct Model, Aspect and Duration settings */}
+            <div className="specs-section">
+              <p>生成模型</p>
+              <div className="model-grid">
+                {modelOptions.map((model) => (
+                  <button
+                    className={selectedModel === model.id ? "selected" : ""}
+                    key={model.id}
+                    type="button"
+                    onClick={() => selectModel(model.id)}
+                  >
+                    <span>{model.eyebrow}</span>
+                    <strong>{model.name}</strong>
+                    <small>{model.desc}</small>
+                    <em className="model-price">{model.price} / 次</em>
+                  </button>
+                ))}
               </div>
-            ) : null}
-            {activeTask ? (
+
+              <p>分辨率</p>
+              <div className="resolution-grid">
+                {availableResolutionOptions.map((option) => (
+                  <button
+                    className={resolution === option ? "selected" : ""}
+                    key={option}
+                    type="button"
+                    onClick={() => changeResolution(option)}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+
+              <p>画幅比例</p>
+              <div className="aspect-grid">
+                {availableAspectOptions.map((option) => (
+                  <button
+                    className={aspect === option.label ? "selected" : ""}
+                    key={option.label}
+                    type="button"
+                    onClick={() => selectAspect(option.label)}
+                  >
+                    <span className="aspect-preview" data-aspect={option.label} />
+                    <strong>{option.label}</strong>
+                    <small>{option.name}</small>
+                  </button>
+                ))}
+              </div>
+
+              <p>视频时长</p>
+              <div className="duration-grid">
+                {availableSecondOptions.map((option) => (
+                  <button
+                    className={seconds === option ? "selected" : ""}
+                    key={option}
+                    type="button"
+                    onClick={() => setSeconds(option)}
+                  >
+                    {option}s
+                  </button>
+                ))}
+              </div>
+
+              <p>批量生成数量</p>
+              <div className="batch-grid">
+                {batchOptions.map((option) => (
+                  <button
+                    className={batchCount === option ? "selected" : ""}
+                    key={option}
+                    type="button"
+                    onClick={() => setBatchCount(option)}
+                  >
+                    {option} 条
+                  </button>
+                ))}
+              </div>
+
+              <button className="send-button" type="submit" disabled={isSubmitting || isUploadingReferences}>
+                {isUploadingReferences ? "正在上传素材" : isSubmitting ? "正在调度队列" : batchCount > 1 ? `提交 ${batchCount} 条任务` : "立即生成视频"}
+              </button>
+            </div>
+          </form>
+
+          {/* Sidebar Footer */}
+          <footer className="app-footer">
+            <div className="footer-brand">
+              <span className="footer-mark">C</span>
+              <div>
+                <strong>C-AI VIDEO</strong>
+                <small>© 2026 苍洱 · All rights reserved</small>
+              </div>
+            </div>
+            <div className="footer-legal">未经授权不得商用</div>
+          </footer>
+        </aside>
+
+        {/* RIGHT CANVAS: Monitor Preview & Grid Workspace */}
+        <div className="right-canvas">
+          {activeTask ? (
+            <section className="preview-dock">
+              <div className="dock-head">
+                <div className="dock-head-title">
+                  <span>主监视器</span>
+                  <strong>{getTaskHeadline(activeTask)}</strong>
+                </div>
+                <span className={`status ${activeTask.status}`}>{statusText[activeTask.status]}</span>
+              </div>
+
+              <div className="video-stage">
+                {activeTask.videoUrl && activeTask.status === "completed" ? (
+                  <video src={activeTask.videoUrl} controls playsInline poster={activeTask.thumbnailUrl || undefined} />
+                ) : (
+                  <div className={`stage-placeholder ${isRunning(activeTask.status) ? "running" : ""}`}>
+                    {isRunning(activeTask.status) ? (
+                      <div className="render-suite">
+                        <div className="render-animation">
+                          {/* Outer focal ring */}
+                          <div className="lens-ring-outer" />
+                          <div className="lens-ring-middle" />
+                          <div className="lens-ring-inner">
+                            <span className="core-dot" />
+                          </div>
+                          {/* Corner brackets */}
+                          <div className="camera-bracket tl" />
+                          <div className="camera-bracket tr" />
+                          <div className="camera-bracket bl" />
+                          <div className="camera-bracket br" />
+                          {/* Scanner sweep line */}
+                          <div className="scanner-line" />
+                        </div>
+                        <div className="render-meta">
+                          <div>
+                            <span>已等待时长</span>
+                            <strong>{elapsedTime}</strong>
+                          </div>
+                          <div>
+                            <span>估算周期</span>
+                            <strong>15-60 分钟</strong>
+                          </div>
+                          <div>
+                            <span>状态同步</span>
+                            <strong>在线轮询中</strong>
+                          </div>
+                        </div>
+                        <div className="render-steps">
+                          {runningSteps.map((step, index) => (
+                            <span className={index <= activeStepIndex ? "active" : ""} key={step}>
+                              {step}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`terminal-state ${activeTask.status}`}>
+                        <span>{statusText[activeTask.status]}</span>
+                      </div>
+                    )}
+                    {isActiveTaskDelayed && (
+                      <p className="task-error">当前处于高峰期，资源较紧张。任务已进入长时等待队列，请耐心等待，系统仍会持续查询最新状态。</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="task-metrics">
+                <span>任务 ID: {activeTask.upstreamTaskId.slice(0, 12)}</span>
+                <span>规格: {activeTask.size || size}</span>
+                <span>时长: {activeTask.seconds || seconds}s</span>
+                <span>用量: {getTaskCostUnits(activeTask, seconds)} 次</span>
+              </div>
+
               <div className="dock-actions">
                 <button
                   type="button"
                   onClick={() => refreshTask(activeTask.upstreamTaskId).catch((err) => setError(getErrorMessage(err)))}
                 >
-                  刷新
+                  刷新状态
                 </button>
                 <button type="button" onClick={() => setDetailTaskId(activeTask.upstreamTaskId)}>
-                  详情
+                  详情日志
                 </button>
                 <button type="button" onClick={() => void copyText(activeTask.upstreamTaskId, "任务 ID")}>
                   复制 ID
                 </button>
                 <button type="button" disabled={!isRunning(activeTask.status)} onClick={() => mutateTask("cancel", activeTask.upstreamTaskId)}>
-                  取消
+                  取消任务
                 </button>
                 <button type="button" disabled={activeTask.status !== "failed"} onClick={() => mutateTask("retry", activeTask.upstreamTaskId)}>
-                  重试
+                  重试渲染
                 </button>
                 {activeTask.videoUrl ? (
-                  <a href={activeTask.videoUrl} target="_blank" rel="noreferrer">
-                    打开视频
-                  </a>
+                  <>
+                    <a href={activeTask.videoUrl} target="_blank" rel="noreferrer">
+                      原片预览
+                    </a>
+                    <button type="button" onClick={() => void copyText(activeTask.videoUrl, "视频链接")}>
+                      复制链接
+                    </button>
+                    <a className="download-action" href={activeTask.videoUrl} download target="_blank" rel="noreferrer">
+                      高清下载
+                    </a>
+                  </>
                 ) : (
                   <button type="button" disabled>
-                    打开视频
+                    原片预览
                   </button>
                 )}
-                {activeTask.videoUrl ? (
-                  <button type="button" onClick={() => void copyText(activeTask.videoUrl, "视频链接")}>
-                    复制链接
-                  </button>
-                ) : null}
-                {activeTask.videoUrl ? (
-                  <a className="download-action" href={activeTask.videoUrl} download target="_blank" rel="noreferrer">
-                    高清下载
-                  </a>
-                ) : null}
               </div>
-            ) : null}
-            {activeTask?.errorMessage ? <p className="task-error">{activeTask.errorMessage}</p> : null}
-          </section>
-        </section>
-        ) : null}
+              {activeTask.errorMessage && <p className="task-error">{activeTask.errorMessage}</p>}
+            </section>
+          ) : (
+            <section className="preview-dock">
+              <div className="empty-monitor">
+                <strong>未选择视频任务</strong>
+                <span>在下方画布工作区选择任意历史生成，或在左侧输入镜头指令提交新任务。</span>
+              </div>
+            </section>
+          )}
 
-        <footer className="app-footer">
-          <div className="footer-brand">
-            <span className="footer-mark">C</span>
-            <div>
-              <strong>C-AI</strong>
-              <small>© 2026 苍洱 · All rights reserved</small>
+          {/* Workspace Task Grid */}
+          <section className="workspace-section">
+            <div className="section-title">
+              <span>生成画布工作区</span>
+              <small>显示最近提交的 {tasks.length} 个任务</small>
             </div>
-          </div>
-          <div className="footer-legal">未经授权不得商用</div>
-        </footer>
-      </section>
 
+            {tasks.length > 0 ? (
+              <div className="workspace-grid">
+                {tasks.map((task) => (
+                  <div
+                    className={`workspace-card ${activeTask?.upstreamTaskId === task.upstreamTaskId ? "active" : ""}`}
+                    key={task.upstreamTaskId}
+                    onClick={() => setActiveTask(task)}
+                  >
+                    <div className="card-media">
+                      {task.videoUrl && task.status === "completed" ? (
+                        <video
+                          src={task.videoUrl}
+                          loop
+                          muted
+                          playsInline
+                          onMouseEnter={(e) => void e.currentTarget.play().catch(() => null)}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.pause();
+                            e.currentTarget.currentTime = 0;
+                          }}
+                        />
+                      ) : (
+                        <div className={`card-placeholder ${task.status}`}>
+                          <span>{statusText[task.status] || "排队中"}</span>
+                        </div>
+                      )}
+                      <span className={`card-badge ${task.status}`}>{statusText[task.status]}</span>
+                    </div>
+                    <div className="card-info">
+                      <p className="card-prompt">{task.prompt || "（参考图生成，未提供提示词）"}</p>
+                      <div className="card-meta">
+                        <span>{getModelName(task.model)}</span>
+                        <span>·</span>
+                        <span>{task.seconds || "--"}s</span>
+                        <span>·</span>
+                        <span>{getAspectBySize(task.size)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-workspace">
+                <strong>画布空空如也</strong>
+                <p>提交您的第一个镜头指令，生成任务将实时展示在此处。</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* OVERLAYS & DIALOGS */}
       {showHistory ? (
         <div className="history-overlay">
           <section
@@ -1640,13 +1896,13 @@ export default function Home() {
                 <h2 id="history-title">历史任务</h2>
               </div>
               <div>
-                <button type="button" onClick={() => loadHistory()} disabled={!apiKey || isLoadingHistory}>
+                <button className="drawer-refresh-btn" type="button" onClick={() => loadHistory()} disabled={!apiKey || isLoadingHistory}>
                   {isLoadingHistory ? "查询中" : "刷新"}
                 </button>
-                <button type="button" onClick={() => setShowHistory(false)} aria-label="关闭历史任务">
-                  ×
-                </button>
               </div>
+              <button className="drawer-close-btn" type="button" onClick={() => setShowHistory(false)} aria-label="关闭历史任务">
+                <CloseIcon />
+              </button>
             </div>
             {tasks.length ? (
               <div className="history-list">
@@ -1703,7 +1959,7 @@ export default function Home() {
                 <h2 id="detail-title">{statusText[detailTask.status]}</h2>
               </div>
               <button data-dialog-focus type="button" onClick={() => setDetailTaskId(null)} aria-label="关闭任务详情">
-                ×
+                <CloseIcon />
               </button>
             </div>
             <div className="detail-summary">
@@ -1746,7 +2002,7 @@ export default function Home() {
               <span>提示词</span>
               <p>{detailTask.prompt || "未保存提示词。"}</p>
             </div>
-            {detailTask.mediaUrls.length ? (
+            {detailTask.mediaUrls.length > 0 && (
               <div className="media-link-list">
                 <span>参考图</span>
                 {detailTask.mediaUrls.map((url, index) => (
@@ -1755,13 +2011,13 @@ export default function Home() {
                   </a>
                 ))}
               </div>
-            ) : null}
-            {detailTask.errorMessage ? (
+            )}
+            {detailTask.errorMessage && (
               <div className="detail-error">
                 <span>错误信息</span>
                 <p>{detailTask.errorMessage}</p>
               </div>
-            ) : null}
+            )}
             <div className="detail-actions">
               <button
                 type="button"
@@ -1779,19 +2035,17 @@ export default function Home() {
                 复用到编辑器
               </button>
               {detailTask.videoUrl ? (
-                <a href={detailTask.videoUrl} target="_blank" rel="noreferrer">
-                  打开视频
-                </a>
-              ) : null}
-              {detailTask.videoUrl ? (
-                <a className="download-action" href={detailTask.videoUrl} download target="_blank" rel="noreferrer">
-                  高清下载
-                </a>
-              ) : null}
-              {detailTask.videoUrl ? (
-                <button type="button" onClick={() => void copyText(detailTask.videoUrl, "视频链接")}>
-                  复制视频链接
-                </button>
+                <>
+                  <a href={detailTask.videoUrl} target="_blank" rel="noreferrer">
+                    打开视频
+                  </a>
+                  <a className="download-action" href={detailTask.videoUrl} download target="_blank" rel="noreferrer">
+                    高清下载
+                  </a>
+                  <button type="button" onClick={() => void copyText(detailTask.videoUrl, "视频链接")}>
+                    复制视频链接
+                  </button>
+                </>
               ) : null}
             </div>
           </section>
@@ -1809,7 +2063,7 @@ export default function Home() {
             onKeyDown={(event) => handleDialogKeyDown(event, () => setShowLogin(false))}
           >
             <button className="login-close" type="button" onClick={() => setShowLogin(false)} aria-label="关闭登录弹窗">
-              ×
+              <CloseIcon />
             </button>
             <h2 id="login-title">密钥登录</h2>
             <label className="login-field">
