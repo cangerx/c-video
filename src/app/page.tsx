@@ -736,11 +736,18 @@ export default function Home() {
       return;
     }
 
+    const maxPollDurationMs = 2 * 60 * 60 * 1000; // 2 小时总上限
+    const pollStartedAt = Date.now();
     let stopped = false;
     let timeout: number | undefined;
     let consecutiveErrors = 0;
 
     const poll = async () => {
+      if (Date.now() - pollStartedAt > maxPollDurationMs) {
+        stopped = true;
+        setError("轮询已超过 2 小时上限，自动停止。请手动刷新状态或检查上游任务。");
+        return;
+      }
       try {
         const nextTask = await refreshTask(activeTask.upstreamTaskId);
         if (nextTask) {
@@ -751,7 +758,7 @@ export default function Home() {
         consecutiveErrors += 1;
         const errMsg = getErrorMessage(err);
         const isPermanent = errMsg.includes("404") || errMsg.includes("不存在") || errMsg.toLowerCase().includes("unrecognized") || errMsg.includes("格式异常");
-        
+
         if (isPermanent || consecutiveErrors >= 5) {
           stopped = true;
           setError(`同步终止：${errMsg}。该任务已结束、不存在或查询持续出错。`);

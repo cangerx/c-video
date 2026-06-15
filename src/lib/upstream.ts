@@ -216,7 +216,12 @@ async function parseVideoTask(response: Response, context: UpstreamContext): Pro
     throw new HttpError(upstreamError.message, response.status, upstreamError.code, upstreamError.type);
   }
 
-  const body = await response.json();
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new HttpError("上游返回了非 JSON 响应，请稍后重试。", 502, "invalid_upstream_response", "upstream_error");
+  }
   return normalizeVideoTask(body);
 }
 

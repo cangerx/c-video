@@ -35,7 +35,12 @@ type UsageRow = {
 
 let db: Database.Database | null = null;
 
+const ALLOWED_TABLES = new Set(["video_tasks", "usage_events"]);
+
 function hasColumn(database: Database.Database, table: string, column: string) {
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error(`hasColumn: table "${table}" is not in the whitelist`);
+  }
   const rows = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   return rows.some((row) => row.name === column);
 }
@@ -143,12 +148,18 @@ export function pruneExpiredTasks() {
   database.prepare("DELETE FROM usage_events WHERE created_at < datetime('now', '-30 days')").run();
 }
 
+function maybePrune() {
+  if (Math.random() < 0.05) {
+    pruneExpiredTasks();
+  }
+}
+
 export function upsertVideoTask(
   userHash: string,
   task: UpstreamVideoTask,
   options: { mediaUrls?: string[]; costUnits?: number; prompt?: string; seconds?: string; size?: string; model?: string } = {}
 ) {
-  pruneExpiredTasks();
+  maybePrune();
 
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -256,7 +267,7 @@ export function recordUsageEvent(
   action: "create" | "retry",
   costUnits: number
 ) {
-  pruneExpiredTasks();
+  maybePrune();
   getDb()
     .prepare(
       `INSERT INTO usage_events (user_hash, task_id, action, cost_units, created_at)
@@ -266,7 +277,7 @@ export function recordUsageEvent(
 }
 
 export function getUsageSummary(userHash: string, limit = 12): UsageSummary {
-  pruneExpiredTasks();
+  maybePrune();
 
   const total = getDb()
     .prepare("SELECT COALESCE(SUM(cost_units), 0) AS total FROM usage_events WHERE user_hash = ?")
@@ -294,7 +305,7 @@ export function getUsageSummary(userHash: string, limit = 12): UsageSummary {
 }
 
 export function listStoredTasks(userHash: string, limit = 30) {
-  pruneExpiredTasks();
+  maybePrune();
 
   const rows = getDb()
     .prepare(
@@ -309,7 +320,7 @@ export function listStoredTasks(userHash: string, limit = 30) {
 }
 
 export function getStoredTask(userHash: string, upstreamTaskId: string) {
-  pruneExpiredTasks();
+  maybePrune();
 
   const row = getDb()
     .prepare("SELECT * FROM video_tasks WHERE user_hash = ? AND upstream_task_id = ?")

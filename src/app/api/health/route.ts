@@ -6,6 +6,11 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     const database = getDatabaseHealth();
+    const isProduction = process.env.NODE_ENV === "production";
+
+    if (isProduction) {
+      return Response.json({ ok: database.ok });
+    }
 
     return Response.json({
       ok: database.ok,
