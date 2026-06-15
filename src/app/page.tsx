@@ -57,8 +57,7 @@ const aspectOptions = [
   { label: "9:16", size: "720x1280", name: "竖屏", hint: "短视频" },
   { label: "1:1", size: "1024x1024", name: "方形", hint: "社媒封面" },
   { label: "4:3", size: "1024x768", name: "经典", hint: "叙事镜头" },
-  { label: "3:4", size: "768x1024", name: "肖像", hint: "人物主体" },
-  { label: "21:9", size: "1280x548", name: "宽银幕", hint: "电影感" }
+  { label: "3:4", size: "768x1024", name: "肖像", hint: "人物主体" }
 ];
 const batchOptions = [1, 3, 5];
 const modelOptions = [
@@ -72,7 +71,7 @@ const modelOptions = [
     defaultResolution: "720P",
     seconds: ["15"],
     resolutions: ["720P", "1080P"],
-    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   },
   {
     id: "seedance-2.0",
@@ -84,7 +83,7 @@ const modelOptions = [
     defaultResolution: "720P",
     seconds: ["15"],
     resolutions: ["720P", "1080P"],
-    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   },
   {
     id: "seedance-2-vip",
@@ -96,7 +95,7 @@ const modelOptions = [
     defaultResolution: "720P",
     seconds: ["15"],
     resolutions: ["720P", "1080P"],
-    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]
+    ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]
   },
   {
     id: "happyhorse-1.0",
@@ -956,7 +955,6 @@ export default function Home() {
         case "1:1": return "1080x1080";
         case "4:3": return "1440x1080";
         case "3:4": return "1080x1440";
-        case "21:9": return "1920x822";
         default: return "1920x1080";
       }
     } else {
@@ -966,7 +964,6 @@ export default function Home() {
         case "1:1": return "1024x1024";
         case "4:3": return "1024x768";
         case "3:4": return "768x1024";
-        case "21:9": return "1280x548";
         default: return "1280x720";
       }
     }
