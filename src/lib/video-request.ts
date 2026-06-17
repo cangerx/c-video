@@ -7,8 +7,6 @@ const happyHorseModel = "happyhorse-1.0";
 const seedanceModels = new Set(["seedance-2", "seedance-2.0", "seedance-2-vip"]);
 // Only these models support 1080P; the rest are 720P-only.
 const hd1080Models = new Set(["seedance-2.0", "happyhorse-1.0"]);
-// Legacy ids submitted by older clients / stored tasks, mapped to the standard model.
-const legacySeedanceModels = new Set(["seedance_2", "seedance_2_5s", "seedance_2_10s", "seedance_2_15s"]);
 
 function getFormFiles(formData: FormData) {
   return [...formData.getAll("media[]"), ...formData.getAll("media")].filter((item): item is File => item instanceof File);
@@ -48,9 +46,6 @@ function normalizeRequestedModel(model: string) {
   }
   if (seedanceModels.has(model)) {
     return model;
-  }
-  if (legacySeedanceModels.has(model)) {
-    return "seedance-2";
   }
 
   return "";

@@ -375,10 +375,6 @@ function getModelOption(modelId: string | null | undefined) {
   if (exact) {
     return exact;
   }
-  // Legacy stored names: seedance_2 / seedance_2_5s / seedance_2_10s / seedance_2_15s
-  if (modelId.startsWith("seedance_2") || modelId.startsWith("seedance-2")) {
-    return modelOptions[0];
-  }
 
   return modelOptions[0];
 }
