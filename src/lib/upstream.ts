@@ -8,7 +8,7 @@ type UpstreamContext = {
 };
 
 type VideoJsonPayload = Record<string, unknown> & {
-  input_reference?: string | string[];
+  input_reference?: string;
 };
 
 const happyHorseModel = "happyhorse-1.0";
@@ -177,10 +177,8 @@ function formDataToJsonPayload(formData: FormData) {
     }
   };
 
-  if (mediaUrls.length === 1) {
+  if (mediaUrls.length >= 1) {
     payload.input_reference = mediaUrls[0];
-  } else if (mediaUrls.length > 1) {
-    payload.input_reference = mediaUrls;
   }
 
   return payload;
@@ -192,11 +190,9 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
   }
 
   const inputReference = payload?.input_reference;
-  const mediaUrls = Array.isArray(inputReference)
-    ? inputReference
-    : typeof inputReference === "string" && inputReference
-      ? [inputReference]
-      : formData.getAll("media_urls").map(String).filter(Boolean);
+  const mediaUrls = typeof inputReference === "string" && inputReference
+    ? [inputReference]
+    : formData.getAll("media_urls").map(String).filter(Boolean);
   console.info("[video-upstream] create payload", {
     mode: payload ? "json" : "multipart",
     model: String(formData.get("model") || ""),
