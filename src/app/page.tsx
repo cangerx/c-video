@@ -439,6 +439,11 @@ export default function Home() {
   const [draftApiKey, setDraftApiKey] = useState("");
   const [now, setNow] = useState(Date.now());
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStart, setMentionStart] = useState(0);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loginDialogRef = useRef<HTMLDivElement>(null);
   const historyDialogRef = useRef<HTMLElement>(null);
@@ -475,6 +480,24 @@ export default function Home() {
     [activeTask?.upstreamTaskId, tasks]
   );
   const referenceCount = files.length + remoteMediaUrlList.length;
+  const mentionCandidates = useMemo(() => {
+    const remote = remoteMediaUrlList.map((url, index) => ({
+      label: `@IMG_${index + 1}`,
+      thumb: url
+    }));
+    const local = files.map((_, index) => ({
+      label: `@IMG_${remoteMediaUrlList.length + index + 1}`,
+      thumb: previewUrls[index] || ""
+    }));
+    return [...remote, ...local];
+  }, [remoteMediaUrlList, files, previewUrls]);
+  const filteredMentions = useMemo(() => {
+    const query = mentionQuery.toLowerCase();
+    if (!query) {
+      return mentionCandidates;
+    }
+    return mentionCandidates.filter((item) => item.label.slice(1).toLowerCase().includes(query));
+  }, [mentionCandidates, mentionQuery]);
   const detailTask = useMemo(() => {
     if (!detailTaskId) {
       return null;
@@ -825,6 +848,74 @@ export default function Home() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [activeTask?.upstreamTaskId, activeTask?.status]);
+
+  function detectMention(value: string, caret: number) {
+    const before = value.slice(0, caret);
+    const at = before.lastIndexOf("@");
+    if (at < 0) {
+      return null;
+    }
+    const charBefore = at > 0 ? before[at - 1] : "";
+    if (charBefore && !/\s/.test(charBefore)) {
+      return null;
+    }
+    const query = before.slice(at + 1);
+    if (/\s/.test(query)) {
+      return null;
+    }
+    return { start: at, query };
+  }
+
+  function handlePromptChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = event.target.value;
+    setPrompt(value);
+    const caret = event.target.selectionStart ?? value.length;
+    const mention = detectMention(value, caret);
+    if (mention && mentionCandidates.length > 0) {
+      setMentionOpen(true);
+      setMentionQuery(mention.query);
+      setMentionStart(mention.start);
+      setMentionActiveIndex(0);
+    } else {
+      setMentionOpen(false);
+    }
+  }
+
+  function insertMention(label: string) {
+    const textarea = promptRef.current;
+    const caret = textarea?.selectionStart ?? mentionStart + 1 + mentionQuery.length;
+    const insertText = `${label} `;
+    const next = prompt.slice(0, mentionStart) + insertText + prompt.slice(caret);
+    setPrompt(next);
+    setMentionOpen(false);
+    setMentionQuery("");
+    const nextCaret = mentionStart + insertText.length;
+    requestAnimationFrame(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+      }
+    });
+  }
+
+  function handlePromptKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (!mentionOpen || filteredMentions.length === 0) {
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setMentionActiveIndex((index) => (index + 1) % filteredMentions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setMentionActiveIndex((index) => (index - 1 + filteredMentions.length) % filteredMentions.length);
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      const choice = filteredMentions[mentionActiveIndex] || filteredMentions[0];
+      insertMention(choice.label);
+    } else if (event.key === "Escape") {
+      setMentionOpen(false);
+    }
+  }
 
   async function addFiles(nextFiles: FileList | File[]) {
     const incomingFiles = Array.from(nextFiles);
@@ -1483,18 +1574,44 @@ export default function Home() {
               <small>{prompt.length}/3500</small>
             </div>
 
-            <textarea
-              className="prompt-box"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="雨夜霓虹，@IMG_1 转身入镜，手持浅景深。"
-              maxLength={3500}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                void addFiles(event.dataTransfer.files);
-              }}
-            />
+            <div className="prompt-field">
+              <textarea
+                ref={promptRef}
+                className="prompt-box"
+                value={prompt}
+                onChange={handlePromptChange}
+                onKeyDown={handlePromptKeyDown}
+                onBlur={() => window.setTimeout(() => setMentionOpen(false), 120)}
+                placeholder="雨夜霓虹，@IMG_1 转身入镜，手持浅景深。"
+                maxLength={3500}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  void addFiles(event.dataTransfer.files);
+                }}
+              />
+              {mentionOpen && filteredMentions.length > 0 && (
+                <div className="mention-pop" role="listbox">
+                  {filteredMentions.map((item, index) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      role="option"
+                      aria-selected={index === mentionActiveIndex}
+                      className={`mention-item ${index === mentionActiveIndex ? "active" : ""}`}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        insertMention(item.label);
+                      }}
+                      onMouseEnter={() => setMentionActiveIndex(index)}
+                    >
+                      {item.thumb ? <img src={item.thumb} alt={item.label} /> : <span className="mention-thumb-empty" />}
+                      <strong>{item.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Reference Upload */}
             <div className="asset-row"

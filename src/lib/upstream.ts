@@ -8,8 +8,11 @@ type UpstreamContext = {
 };
 
 type VideoJsonPayload = Record<string, unknown> & {
-  input_reference?: string;
+  referenceImages?: string[];
 };
+
+// 上游文档：referenceImages 最多 4 张参考图。
+const maxReferenceImages = 4;
 
 const happyHorseModel = "happyhorse-1.0";
 
@@ -157,7 +160,7 @@ function sizeToRatio(size: string) {
 
 function formDataToJsonPayload(formData: FormData) {
   // Both seedance-2.0 and happyhorse-1.0 share the same documented JSON body:
-  // POST /v1/videos with { model, prompt, duration, input_reference?, metadata }.
+  // POST /v1/videos with { model, prompt, duration, referenceImages?, metadata }.
   const model = String(formData.get("model") || "");
   const prompt = String(formData.get("prompt") || formData.get("input") || "");
   const seconds = Number(formData.get("seconds") || formData.get("duration") || 15);
@@ -178,7 +181,7 @@ function formDataToJsonPayload(formData: FormData) {
   };
 
   if (mediaUrls.length >= 1) {
-    payload.input_reference = mediaUrls[0];
+    payload.referenceImages = mediaUrls.slice(0, maxReferenceImages);
   }
 
   return payload;
@@ -189,9 +192,9 @@ function maybeLogCreatePayload(formData: FormData, payload: VideoJsonPayload | n
     return;
   }
 
-  const inputReference = payload?.input_reference;
-  const mediaUrls = typeof inputReference === "string" && inputReference
-    ? [inputReference]
+  const referenceImages = payload?.referenceImages;
+  const mediaUrls = Array.isArray(referenceImages) && referenceImages.length
+    ? referenceImages
     : formData.getAll("media_urls").map(String).filter(Boolean);
   console.info("[video-upstream] create payload", {
     mode: payload ? "json" : "multipart",

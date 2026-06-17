@@ -10,3 +10,4 @@ data/*.db-*
 tsconfig.tsbuildinfo
 npm-debug.log*
 video-workbench-baota.zip
+.playwright-mcp/
